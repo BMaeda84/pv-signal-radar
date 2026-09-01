@@ -14,7 +14,10 @@ import (
 // propBackground = 4950 / 999000 ~= 0.0049549
 // PRR ~= 10.09
 func TestContingencyTable_StandardSignal(t *testing.T) {
-	table := NewContingencyTable(50, 1000, 5000, 1000000)
+	table, err := NewContingencyTable(50, 1000, 5000, 1000000)
+	if err != nil {
+		t.Fatalf("unexpected table construction error: %v", err)
+	}
 
 	if table.A != 50 {
 		t.Fatalf("expected A=50, got %v", table.A)
@@ -63,7 +66,10 @@ func TestContingencyTable_StandardSignal(t *testing.T) {
 
 // TestContingencyTable_SmallSample verifies that samples with a < 3 do not trigger active signals.
 func TestContingencyTable_SmallSample(t *testing.T) {
-	table := NewContingencyTable(2, 10, 20, 10000)
+	table, err := NewContingencyTable(2, 10, 20, 10000)
+	if err != nil {
+		t.Fatalf("unexpected table construction error: %v", err)
+	}
 	result := table.Calculate("RareDrug", "RareEvent")
 
 	if result.Signal == SignalActive {
@@ -73,7 +79,10 @@ func TestContingencyTable_SmallSample(t *testing.T) {
 
 // TestContingencyTable_ZeroCellCorrection verifies Haldane-Anscombe 0.5 correction on zero cells.
 func TestContingencyTable_ZeroCellCorrection(t *testing.T) {
-	table := NewContingencyTable(0, 100, 50, 100000)
+	table, err := NewContingencyTable(0, 100, 50, 100000)
+	if err != nil {
+		t.Fatalf("unexpected table construction error: %v", err)
+	}
 	result := table.Calculate("DrugZero", "ReactionZero")
 
 	if math.IsNaN(result.PRR) || math.IsInf(result.PRR, 0) {
@@ -84,5 +93,24 @@ func TestContingencyTable_ZeroCellCorrection(t *testing.T) {
 	}
 	if result.Signal != SignalNone {
 		t.Errorf("expected SignalNone for zero count, got %v", result.Signal)
+	}
+}
+
+func TestNewContingencyTableRejectsIncompatibleMargins(t *testing.T) {
+	tests := []struct {
+		name                                             string
+		drugReaction, drugTotal, reactionTotal, universe int64
+	}{
+		{"a exceeds drug total", 11, 10, 20, 100},
+		{"a exceeds reaction total", 11, 20, 10, 100},
+		{"negative d", 5, 80, 80, 100},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := NewContingencyTable(tt.drugReaction, tt.drugTotal, tt.reactionTotal, tt.universe); err == nil {
+				t.Fatal("expected inconsistent margins to be rejected")
+			}
+		})
 	}
 }

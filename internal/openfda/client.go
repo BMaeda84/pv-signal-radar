@@ -3,9 +3,11 @@ package openfda
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -16,9 +18,11 @@ import (
 const (
 	DefaultBaseURL     = "https://api.fda.gov/drug/event.json"
 	DefaultTimeout     = 10 * time.Second
+	AnalysisTimeout    = 25 * time.Second
 	MaxReactionWorkers = 5
-	// FallbackUniverseN provides an approximate baseline if global total query fails (~26 million FAERS reports)
-	FallbackUniverseN int64 = 26000000
+	// MaxReactionsPerAnalysis bounds both the visible result set and the number
+	// of reaction-background requests made by one cache-miss scan.
+	MaxReactionsPerAnalysis = 25
 )
 
 // Client interacts with the openFDA Drug Adverse Event API.
@@ -39,59 +43,92 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
+// buildURL encodes query parameters once at the HTTP boundary. It prevents a
+// user-supplied term from changing parameter structure while keeping the API key
+// out of manually assembled URLs and error messages.
+func (c *Client) buildURL(search, count string, limit int) string {
+	params := url.Values{}
+	if search != "" {
+		params.Set("search", search)
+	}
+	if count != "" {
+		params.Set("count", count)
+	}
+	if limit > 0 {
+		params.Set("limit", fmt.Sprintf("%d", limit))
+	}
+	if c.apiKey != "" {
+		params.Set("api_key", c.apiKey)
+	}
+
+	return c.baseURL + "?" + params.Encode()
+}
+
+// exactPhrase escapes the query grammar before wrapping a drug or MedDRA term
+// in quotes. URL encoding alone protects transport syntax, not the openFDA
+// search language that is parsed after the URL is decoded.
+func exactPhrase(value string) string {
+	escaped := strings.ReplaceAll(value, `\`, `\\`)
+	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
+	return `"` + escaped + `"`
+}
+
+func drugSearchQuery(drugName string) string {
+	phrase := exactPhrase(drugName)
+	// openFDA treats whitespace-separated clauses as OR. Searching all three
+	// fields expands coverage without asserting that every harmonized field is
+	// populated for the same report.
+	return strings.Join([]string{
+		"patient.drug.openfda.generic_name:" + phrase,
+		"patient.drug.openfda.brand_name:" + phrase,
+		"patient.drug.medicinalproduct:" + phrase,
+	}, " ")
+}
+
 // GetUniverseTotal fetches the total number of adverse event records currently in the FAERS database.
 func (c *Client) GetUniverseTotal(ctx context.Context) (int64, error) {
-	reqURL := fmt.Sprintf("%s?search=_exists_:patient.reaction.reactionmeddrapt&limit=1", c.baseURL)
-	if c.apiKey != "" {
-		reqURL += "&api_key=" + url.QueryEscape(c.apiKey)
-	}
+	reqURL := c.buildURL("", "", 1)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return FallbackUniverseN, err
+		return 0, errors.New("could not construct openFDA universe request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return FallbackUniverseN, err
+		return 0, errors.New("openFDA universe request failed")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return FallbackUniverseN, fmt.Errorf("openfda returned status %d", resp.StatusCode)
+		return 0, fmt.Errorf("openFDA universe query returned status %d", resp.StatusCode)
 	}
 
 	var data TotalResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return FallbackUniverseN, err
+		return 0, fmt.Errorf("could not decode openFDA universe response: %w", err)
 	}
 
 	if data.Meta.Results.Total > 0 {
 		return data.Meta.Results.Total, nil
 	}
 
-	return FallbackUniverseN, nil
+	return 0, errors.New("openFDA universe response contained no records")
 }
 
 // GetDrugTotalReports fetches total adverse event reports where the requested drug is mentioned.
 func (c *Client) GetDrugTotalReports(ctx context.Context, drugName string) (int64, error) {
 	cleanDrug := strings.TrimSpace(drugName)
-	escapedDrug := url.QueryEscape(fmt.Sprintf(`"%s"`, cleanDrug))
-	searchQuery := fmt.Sprintf(`patient.drug.openfda.generic_name:%s+patient.drug.openfda.brand_name:%s+patient.drug.medicinalproduct:%s`, escapedDrug, escapedDrug, escapedDrug)
-
-	reqURL := fmt.Sprintf("%s?search=%s&limit=1", c.baseURL, searchQuery)
-	if c.apiKey != "" {
-		reqURL += "&api_key=" + url.QueryEscape(c.apiKey)
-	}
+	reqURL := c.buildURL(drugSearchQuery(cleanDrug), "", 1)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("could not construct openFDA drug-total request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("openFDA drug-total request failed")
 	}
 	defer resp.Body.Close()
 
@@ -104,7 +141,7 @@ func (c *Client) GetDrugTotalReports(ctx context.Context, drugName string) (int6
 
 	var data TotalResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not decode openFDA drug-total response: %w", err)
 	}
 
 	return data.Meta.Results.Total, nil
@@ -117,22 +154,16 @@ func (c *Client) GetTopReactionsForDrug(ctx context.Context, drugName string, li
 	}
 
 	cleanDrug := strings.TrimSpace(drugName)
-	escapedDrug := url.QueryEscape(fmt.Sprintf(`"%s"`, cleanDrug))
-	searchQuery := fmt.Sprintf(`patient.drug.openfda.generic_name:%s+patient.drug.openfda.brand_name:%s+patient.drug.medicinalproduct:%s`, escapedDrug, escapedDrug, escapedDrug)
-
-	reqURL := fmt.Sprintf("%s?search=%s&count=patient.reaction.reactionmeddrapt.exact&limit=%d", c.baseURL, searchQuery, limit)
-	if c.apiKey != "" {
-		reqURL += "&api_key=" + url.QueryEscape(c.apiKey)
-	}
+	reqURL := c.buildURL(drugSearchQuery(cleanDrug), "patient.reaction.reactionmeddrapt.exact", limit)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("could not construct openFDA reaction-count request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("openFDA reaction-count request failed")
 	}
 	defer resp.Body.Close()
 
@@ -145,7 +176,7 @@ func (c *Client) GetTopReactionsForDrug(ctx context.Context, drugName string, li
 
 	var data CountResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not decode openFDA reaction-count response: %w", err)
 	}
 
 	return data.Results, nil
@@ -153,20 +184,17 @@ func (c *Client) GetTopReactionsForDrug(ctx context.Context, drugName string, li
 
 // GetReactionBackgroundTotal fetches the total number of times a given MedDRA reaction appears across all FAERS reports.
 func (c *Client) GetReactionBackgroundTotal(ctx context.Context, reactionPT string) (int64, error) {
-	escapedReaction := url.QueryEscape(fmt.Sprintf(`"%s"`, reactionPT))
-	reqURL := fmt.Sprintf("%s?search=patient.reaction.reactionmeddrapt.exact:%s&limit=1", c.baseURL, escapedReaction)
-	if c.apiKey != "" {
-		reqURL += "&api_key=" + url.QueryEscape(c.apiKey)
-	}
+	searchQuery := "patient.reaction.reactionmeddrapt.exact:" + exactPhrase(reactionPT)
+	reqURL := c.buildURL(searchQuery, "", 1)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("could not construct openFDA background request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, errors.New("openFDA background request failed")
 	}
 	defer resp.Body.Close()
 
@@ -179,7 +207,7 @@ func (c *Client) GetReactionBackgroundTotal(ctx context.Context, reactionPT stri
 
 	var data TotalResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("could not decode openFDA background response: %w", err)
 	}
 
 	return data.Meta.Results.Total, nil
@@ -192,6 +220,12 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		return nil, fmt.Errorf("drug name cannot be empty")
 	}
 
+	// One scan fans out into multiple upstream requests. Bounding the full scan,
+	// rather than only each HTTP request, prevents a slow batch from outliving the
+	// public handler and presenting stale or partial statistics as fresh results.
+	analysisCtx, cancel := context.WithTimeout(ctx, AnalysisTimeout)
+	defer cancel()
+
 	// 1. Fetch universe N and Drug Total
 	var universeN int64
 	var drugTotal int64
@@ -203,15 +237,15 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 	wg.Add(3)
 	go func() {
 		defer wg.Done()
-		universeN, errUniverse = c.GetUniverseTotal(ctx)
+		universeN, errUniverse = c.GetUniverseTotal(analysisCtx)
 	}()
 	go func() {
 		defer wg.Done()
-		drugTotal, errDrug = c.GetDrugTotalReports(ctx, cleanDrug)
+		drugTotal, errDrug = c.GetDrugTotalReports(analysisCtx, cleanDrug)
 	}()
 	go func() {
 		defer wg.Done()
-		topReactions, errReactions = c.GetTopReactionsForDrug(ctx, cleanDrug, 25)
+		topReactions, errReactions = c.GetTopReactionsForDrug(analysisCtx, cleanDrug, MaxReactionsPerAnalysis)
 	}()
 	wg.Wait()
 
@@ -222,14 +256,14 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		return nil, fmt.Errorf("failed to query reactions: %w", errReactions)
 	}
 	if errUniverse != nil || universeN == 0 {
-		universeN = FallbackUniverseN
+		return nil, errors.New("failed to establish the current FAERS universe")
 	}
 
 	if drugTotal == 0 || len(topReactions) == 0 {
 		return &DrugEventAnalysis{
 			QueryDrug:         drugName,
 			NormalizedDrug:    cleanDrug,
-			DrugTotalReports:  0,
+			DrugTotalReports:  drugTotal,
 			DatabaseUniverseN: universeN,
 			Signals:           []SignalSummary{},
 			Timestamp:         time.Now().UTC().Format(time.RFC3339),
@@ -253,10 +287,15 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		bgWg.Add(1)
 		go func(term string, count int64) {
 			defer bgWg.Done()
-			sem <- struct{}{}
+			select {
+			case sem <- struct{}{}:
+			case <-analysisCtx.Done():
+				resultsChan <- reactionBgResult{term: term, count: count, err: analysisCtx.Err()}
+				return
+			}
 			defer func() { <-sem }()
 
-			bgTotal, err := c.GetReactionBackgroundTotal(ctx, term)
+			bgTotal, err := c.GetReactionBackgroundTotal(analysisCtx, term)
 			resultsChan <- reactionBgResult{
 				term:  term,
 				count: count,
@@ -274,11 +313,17 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 	activeCount := 0
 
 	for res := range resultsChan {
+		// The background count is a marginal total in the 2x2 table. Replacing a
+		// failed lookup with a creates c=0 and can inflate PRR/ROR into a false
+		// active signal, so an incomplete scan is rejected as a whole.
 		if res.err != nil || res.total == 0 {
-			res.total = res.count // Fallback
+			return nil, fmt.Errorf("failed to establish background count for reaction %q", res.term)
 		}
 
-		table := stats.NewContingencyTable(res.count, drugTotal, res.total, universeN)
+		table, err := stats.NewContingencyTable(res.count, drugTotal, res.total, universeN)
+		if err != nil {
+			return nil, fmt.Errorf("invalid contingency table for reaction %q: %w", res.term, err)
+		}
 		statRes := table.Calculate(cleanDrug, res.term)
 
 		if statRes.Signal == stats.SignalActive {
@@ -306,6 +351,13 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		signalSummaries = append(signalSummaries, summary)
 	}
 
+	// Concurrent background lookups complete in non-deterministic order. Sorting
+	// the API output gives clients and audit captures a stable representation of
+	// one calculation over the same source response.
+	sort.Slice(signalSummaries, func(i, j int) bool {
+		return signalSummaries[i].Reaction < signalSummaries[j].Reaction
+	})
+
 	analysis := &DrugEventAnalysis{
 		QueryDrug:          drugName,
 		NormalizedDrug:     cleanDrug,
@@ -315,7 +367,7 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		TotalReactions:     len(signalSummaries),
 		Signals:            signalSummaries,
 		Timestamp:          time.Now().UTC().Format(time.RFC3339),
-		Disclaimer:         "FAERS data reflects spontaneous reports where causality is unconfirmed. Disproportionality metrics (PRR/ROR) indicate statistical reporting associations, not incidence rates.",
+		Disclaimer:         "Exploratory FAERS screening only: report-level co-occurrence does not establish a drug-event causal link, clinical incidence, or a validated safety conclusion.",
 	}
 
 	return analysis, nil

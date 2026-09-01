@@ -1,0 +1,20 @@
+# Keep local checkout state, generated binaries, and possible local secrets out
+# of the Docker build context. The final image only needs source and go.mod.
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+coverage.txt
+*.out
+*.log
+.vscode
+.idea
+README*.md
+LICENSE

@@ -1,180 +1,109 @@
 # PV Signal Radar 🛰️
 
+[Português (Brasil)](README.pt-BR.md) · [Español](README.es.md) · **English**
+
 [![CI](https://github.com/BMaeda84/pv-signal-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/BMaeda84/pv-signal-radar/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](https://go.dev/)
 
-> **Open-Source Real-Time Pharmacovigilance Disproportionality & Signal Detection Engine.**  
-> Mining OpenFDA FAERS adverse event reports with standard regulatory statistical data mining algorithms (PRR, ROR, Yates' $\chi^2$, 95% Confidence Intervals, and Volcano Plots).
+> An open-source, **exploratory** pharmacovigilance screening dashboard. It queries public [openFDA FAERS](https://open.fda.gov/apis/drug/event/) reports and computes PRR, ROR, 95% confidence intervals, and Yates-corrected chi-square for hypothesis generation.
 
----
+## What it does
 
-## 🔬 Overview & Motivation
+For an active substance, the service retrieves the most frequently reported MedDRA Preferred Terms (PTs) and constructs a report-level 2 × 2 table for each term:
 
-Spontaneous reporting systems (such as the US FDA FAERS and WHO VigiBase) are foundational to post-marketing drug safety surveillance. However, commercial signal detection suites (such as Oracle Empirica or IQVIA) are locked behind high-cost enterprise contracts, while open-source alternatives primarily exist as command-line R scripts requiring manual data engineering across gigabytes of raw ASCII records.
+| | Target reaction (E) | Other reactions (¬E) | Total |
+|---|---:|---:|---:|
+| Target drug (D) | a | b | a + b |
+| Other drugs (¬D) | c | d | c + d |
+| Total | a + c | b + d | N |
 
-**PV Signal Radar** bridges this gap:
-- **Zero-Latency Data Mining**: Queries the live openFDA adverse events dataset and dynamically reconstructs the $2 \times 2$ contingency matrix across the 25M+ FAERS universe.
-- **Regulatory-Grade Statistics**: Calculates Proportional Reporting Ratio ($\text{PRR}$), Reporting Odds Ratio ($\text{ROR}$), 95% Confidence Intervals, and Yates' Continuity-Corrected Chi-Square ($\chi^2$).
-- **Ultra-Lightweight Footprint**: Written in Go with an embedded HTML5/Canvas dashboard. Single static binary, RAM footprint $< 20\text{ MB}$, and zero external database dependencies.
-- **Interactive Visualizations**: Real-time Volcano Plot ($\log_2(\text{PRR})$ vs. $\sqrt{\chi^2}$) and expandable matrix inspector.
+The dashboard presents:
 
----
+- `PRR = [a / (a + b)] / [c / (c + d)]`
+- `ROR = (a × d) / (b × c)`
+- asymptotic 95% confidence intervals, with Haldane-Anscombe correction when a cell is zero;
+- Yates-corrected chi-square and an exploratory volcano plot; and
+- a configurable screening label when `a ≥ 3`, `PRR ≥ 2.0`, and `χ² ≥ 4.0`.
 
-## 📐 Mathematical Formulation
+The label is a prioritization rule implemented by this project, **not** a regulatory decision, a clinical finding, or evidence of causality.
 
-### 1. The $2 \times 2$ Contingency Table
+## Languages and accessibility
 
-For a given target active substance ($D$) and a specific adverse reaction ($E$), the reporting space is partitioned into four cells against the total database universe ($N$):
+The public interface supports **Português (Brasil)**, **Español**, and English. The selector persists locally in the browser, updates document language/title/metadata, localizes numerical formatting, and does not alter API payloads or cached results. MedDRA PT values and API enums remain unchanged to preserve their source semantics.
 
-$$\begin{array}{c|c|c|c}
- & \text{Target Reaction } (E) & \text{Other Reactions } (\neg E) & \text{Total} \\
-\hline
-\text{Target Drug } (D) & a & b & a + b \\
-\hline
-\text{Other Drugs } (\neg D) & c & d & c + d \\
-\hline
-\text{Total} & a + c & b + d & N = a + b + c + d \\
-\end{array}$$
+The dashboard includes a labelled search field, keyboard-operable 2 × 2 matrix controls, canvas text alternatives, visible focus states, and responsive layout behavior.
 
-Where:
-- $a = \text{Reports with Drug } D \text{ and Reaction } E$
-- $b = \text{Reports with Drug } D \text{ and other reactions } = (a + b) - a$
-- $c = \text{Reports with other drugs and Reaction } E = (a + c) - a$
-- $d = \text{Reports with other drugs and other reactions } = N - (a + b + c)$
+## Run locally
 
----
+### Go
 
-### 2. Proportional Reporting Ratio (PRR)
-
-Compares the proportion of reaction $E$ for drug $D$ against the background proportion for all other drugs:
-
-$$\text{PRR} = \frac{\frac{a}{a + b}}{\frac{c}{c + d}}$$
-
-Asymptotic Standard Error of $\ln(\text{PRR})$:
-$$\text{SE}(\ln \text{PRR}) = \sqrt{\frac{1}{a} - \frac{1}{a + b} + \frac{1}{c} - \frac{1}{c + d}}$$
-
-Two-sided 95% Confidence Interval:
-$$\text{CI}_{95\%}(\text{PRR}) = \left[ \exp\left(\ln \text{PRR} - 1.96 \cdot \text{SE}\right), \; \exp\left(\ln \text{PRR} + 1.96 \cdot \text{SE}\right) \right]$$
-
----
-
-### 3. Reporting Odds Ratio (ROR)
-
-Measures the odds of reporting reaction $E$ with drug $D$ relative to all other drugs (analogous to a case-control odds ratio):
-
-$$\text{ROR} = \frac{a \cdot d}{b \cdot c}$$
-
-Asymptotic Standard Error of $\ln(\text{ROR})$ (with Haldane-Anscombe $0.5$ continuity correction for zero cells):
-$$\text{SE}(\ln \text{ROR}) = \sqrt{\frac{1}{a} + \frac{1}{b} + \frac{1}{c} + \frac{1}{d}}$$
-
-Two-sided 95% Confidence Interval:
-$$\text{CI}_{95\%}(\text{ROR}) = \left[ \exp\left(\ln \text{ROR} - 1.96 \cdot \text{SE}\right), \; \exp\left(\ln \text{ROR} + 1.96 \cdot \text{SE}\right) \right]$$
-
----
-
-### 4. Yates' Continuity-Corrected Chi-Square ($\chi^2_{\text{Yates}}$)
-
-Corrects for the continuous approximation of the discrete 1-degree-of-freedom binomial distribution:
-
-$$\chi^2_{\text{Yates}} = \frac{N \cdot \left( \max\left(0, |a \cdot d - b \cdot c| - \frac{N}{2}\right) \right)^2}{(a + b)(c + d)(a + c)(b + d)}$$
-
----
-
-### 5. Regulatory Signal Decision Rules (Evans et al. / EMA Guidelines)
-
-An association is classified as an **Active Statistical Signal** when all three conditions are met simultaneously:
-1. $\text{Case Count } (a) \ge 3$
-2. $\text{PRR} \ge 2.0$
-3. $\chi^2_{\text{Yates}} \ge 4.0$ (corresponds to $p < 0.0455$)
-
----
-
-## 🚀 Quick Start
-
-### Running with Go
-
-```bash
-# Clone the repository
+```powershell
 git clone https://github.com/BMaeda84/pv-signal-radar.git
-cd pv-signal-radar
-
-# Run server
+Set-Location pv-signal-radar
 go run ./cmd/server
 ```
 
-Open [http://localhost:8080](http://localhost:8080) in your browser.
+Open <http://localhost:8080>.
 
-### Running with Docker
+### Docker
 
-```bash
-# Build Docker image
-docker build -t pv-signal-radar .
-
-# Run container
-docker run -p 8080:8080 pv-signal-radar
+```powershell
+docker build --tag pv-signal-radar .
+docker run --rm --publish 8080:8080 pv-signal-radar
 ```
 
----
+The image runs as a non-root user and exposes `/api/v1/health` for container/orchestrator health checks.
 
-## 📡 REST API Specifications
+## Configuration
 
-### 1. Analyze Drug Disproportionality
+| Variable | Default | Purpose |
+|---|---:|---|
+| `PORT` | `8080` | HTTP listening port. Railway supplies this automatically. |
+| `OPENFDA_API_KEY` | unset | Optional openFDA API key. Keep it in the deployment secret store; never commit it. |
+| `CACHE_CAPACITY` | `500` | Maximum number of completed analyses held in the in-memory LRU cache. |
+| `CACHE_TTL_HOURS` | `24` | TTL for completed analysis cache entries. |
+
+The service limits concurrent cache-miss analyses and spaces scan starts by at least 15 seconds in each process. At the current maximum of 28 upstream requests per scan, no more than five starts can occur in a 60-second window (140 openFDA requests) without an initial burst. A busy or rate-gated service returns `429` with `Retry-After`; it does not silently queue unlimited work. Upstream daily and multi-instance quotas still need operational monitoring.
+
+## API
+
 ```http
 GET /api/v1/analyze?drug=Semaglutide
-```
-
-#### Response Payload (`200 OK`)
-```json
-{
-  "query_drug": "Semaglutide",
-  "normalized_drug": "Semaglutide",
-  "drug_total_reports": 58320,
-  "database_universe_n": 26145890,
-  "active_signals_count": 8,
-  "total_reactions_analyzed": 25,
-  "signals": [
-    {
-      "reaction": "PANCREATITIS",
-      "count_a": 1420,
-      "drug_total": 58320,
-      "reaction_total": 89400,
-      "prr": 7.12,
-      "prr_lower_95": 6.75,
-      "prr_upper_95": 7.51,
-      "ror": 7.34,
-      "ror_lower_95": 6.95,
-      "ror_upper_95": 7.75,
-      "chi_square_yates": 7854.2,
-      "p_value_approx": 0.0,
-      "signal_level": "ACTIVE_SIGNAL",
-      "signal_score": 251.2,
-      "interpretation": "Statistically significant disproportionate reporting detected (Evans/EMA criteria satisfied). Clinical review recommended."
-    }
-  ],
-  "timestamp": "2026-09-01T22:00:00Z"
-}
-```
-
-### 2. Health & Cache Status
-```http
 GET /api/v1/health
 ```
 
----
+`/api/v1/analyze` accepts only `GET`. Its response includes the queried substance, current FAERS universe, source counts, metrics, a stable `signal_level`, timestamp, and an exploratory-use disclaimer. Successful analyses are cached server-side, while HTTP responses use `Cache-Control: no-store`.
 
-## ⚖️ Methodological & Epistemic Disclaimers
+Expected error codes are `drug_required` (`400`), `invalid_drug` (`400`), `method_not_allowed` (`405`), `analysis_busy` (`429`), `analysis_rate_limited` (`429`), and `analysis_unavailable` (`502`). Error responses intentionally omit upstream transport details, so an `OPENFDA_API_KEY` cannot be reflected to a public client.
 
-> [!WARNING]
-> 1. **Non-Causality**: Spontaneous reports in the FAERS database reflect suspicions and observed associations submitted by healthcare professionals, pharmaceutical companies, and consumers. A report does not establish clinical causality or proof that the drug caused the reaction.
-> 2. **Lack of Denominator**: Spontaneous reporting databases measure reporting ratios, not clinical incidence rates. The true number of patients exposed to the drug (prescription volume) is absent.
-> 3. **Weber Effect & Reporting Biases**: Factors such as media coverage, notoriety bias, litigation publicity, and product launch timelines can substantially stimulate reporting volumes.
-> 4. **Intended Use**: This tool is an exploratory, hypotheses-generating data mining instrument intended for researchers, pharmacists, and epidemiologists. It is not a clinical decision support system or medical advice.
+## Data-quality boundary
 
----
+This repository is deliberately conservative about incomplete source data: it rejects an analysis when it cannot obtain the current universe or a reaction background marginal. It does **not** substitute a fixed historical universe or substitute the target count for an unavailable background count, because either behavior can fabricate an extreme PRR/ROR and a false screening signal.
 
-## 📄 License
+It still has material methodological limits:
 
-Distributed under the **MIT License**. See [`LICENSE`](./LICENSE) for more information.
+1. FAERS reports are spontaneous, incomplete, and subject to reporting, notoriety, duplicate, and temporal biases.
+2. A report can contain multiple drugs and multiple reactions. Public openFDA data do not individually establish that a particular drug caused a particular reaction.
+3. The project does not add case-level deduplication, exposure denominators, confounder adjustment, clinical adjudication, or an immutable data snapshot.
+4. openFDA updates over time; the same query can legitimately return different results later.
+5. This is not medical advice, a clinical decision-support system, or a validated/qualified GxP or regulatory reporting system.
 
-Developed by **[Bruno Maeda](https://github.com/BMaeda84)**.
+Use results only as a starting point for qualified pharmacovigilance review with appropriate case-level and clinical evidence.
+
+## Verification
+
+```powershell
+go test -race ./...
+go vet ./...
+go build ./cmd/server
+docker build --tag pv-signal-radar:local .
+```
+
+CI runs race-enabled unit tests, static analysis, binary compilation, and a Docker build on every pull request and push to `main`.
+
+On Windows, `go test -race` needs CGO and an available C toolchain. If the local host does not provide one, run `go test ./...` locally and use the Linux CI run as the race-detector check.
+
+## License
+
+Distributed under the [MIT License](LICENSE). Developed by [Bruno Maeda](https://github.com/BMaeda84).
