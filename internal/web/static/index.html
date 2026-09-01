@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PV Signal Radar - Open-Source Pharmacovigilance Disproportionality Engine</title>
+  <meta name="description" content="Real-time statistical signal detection for drug safety using OpenFDA FAERS data, PRR, ROR, Yates' Chi-Square, and Volcano Plots.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-content">
+      <div class="logo-area">
+        <div class="logo-icon">PV</div>
+        <div class="logo-title">
+          <h1>Signal Radar</h1>
+          <span>Pharmacovigilance Data Mining</span>
+        </div>
+      </div>
+      <div class="header-links">
+        <a href="#methodology" class="btn-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Methodology
+        </a>
+        <a href="https://github.com/BMaeda84/pv-signal-radar" target="_blank" rel="noopener noreferrer" class="btn-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub (MIT)
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero & Search -->
+  <main class="container">
+    <section class="hero">
+      <h2>Open Disproportionality Signal Engine</h2>
+      <p>Analyze spontaneous adverse event reporting across 25M+ FAERS records with real-time PRR, ROR, and Yates' Chi-Square statistics.</p>
+      
+      <div class="search-box-wrapper">
+        <form id="searchForm" class="search-form">
+          <input type="text" id="drugInput" class="search-input" placeholder="Search drug active substance (e.g. Semaglutide, Pembrolizumab, Metformin)..." autocomplete="off" required>
+          <button type="submit" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Analyze
+          </button>
+        </form>
+        <div class="search-presets">
+          <span>Popular benchmarks:</span>
+          <button type="button" class="tag-preset" data-drug="Semaglutide">Semaglutide</button>
+          <button type="button" class="tag-preset" data-drug="Pembrolizumab">Pembrolizumab</button>
+          <button type="button" class="tag-preset" data-drug="Metformin">Metformin</button>
+          <button type="button" class="tag-preset" data-drug="Rosuvastatin">Rosuvastatin</button>
+          <button type="button" class="tag-preset" data-drug="Adalimumab">Adalimumab</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- State Box (Loading / Messages) -->
+    <div id="stateBox" class="state-box">
+      <div id="loadingSpinner" class="spinner"></div>
+      <div class="state-text">Ready to query openFDA FAERS dataset.</div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsContainer" style="display: none;">
+      
+      <!-- Stats Overview Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Analyzed Substance</div>
+          <div id="statDrugName" class="stat-value" style="font-size: 1.35rem; color: var(--accent-cyan);">-</div>
+          <div class="stat-subtext">Queried target drug</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Drug Total Reports (a + b)</div>
+          <div id="statTotalReports" class="stat-value">-</div>
+          <div class="stat-subtext">Reports mentioning target drug</div>
+        </div>
+        <div id="activeSignalsCard" class="stat-card">
+          <div class="stat-label">Active Signals</div>
+          <div id="statActiveSignals" class="stat-value" style="color: var(--signal-active);">-</div>
+          <div class="stat-subtext">PRR &ge; 2.0, &chi;&sup2; &ge; 4.0, a &ge; 3</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Universe Reports (N)</div>
+          <div id="statUniverseN" class="stat-value">-</div>
+          <div class="stat-subtext">FAERS total database records</div>
+        </div>
+      </div>
+
+      <!-- Main Layout: Volcano Plot + Data Table -->
+      <div class="dashboard-layout">
+        
+        <!-- Volcano Plot Card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Disproportionality Volcano Plot</span>
+          </div>
+          <div class="card-body">
+            <div class="plot-container">
+              <canvas id="volcanoCanvas"></canvas>
+            </div>
+            <div class="plot-legend">
+              <div class="legend-item">
+                <div class="legend-dot" style="background: var(--signal-active);"></div>
+                <span>Active Signal</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background: var(--signal-potential);"></div>
+                <span>Potential</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background: var(--signal-none);"></div>
+                <span>Baseline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top Adverse Events &amp; Disproportionality Metrics</span>
+            <span id="statReactionsAnalyzed" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Adverse Reaction (MedDRA PT)</th>
+                  <th>Reports (a)</th>
+                  <th>PRR [95% CI]</th>
+                  <th>ROR [95% CI]</th>
+                  <th>&chi;&sup2; (Yates)</th>
+                  <th>Signal Status</th>
+                </tr>
+              </thead>
+              <tbody id="signalsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Regulatory Disclaimer Banner -->
+      <div class="disclaimer-banner">
+        <strong>Methodological Disclaimer:</strong> Calculations are based on spontaneous adverse event reports from the US FDA FAERS database. Disproportionality metrics ($\text{PRR}$, $\text{ROR}$) quantify reporting frequency relative to background rates, not clinical incidence or verified causality. Factors like notoriety bias (Weber effect), stimulated reporting, and lack of prescription denominators must be considered during signal validation.
+      </div>
+
+    </div>
+
+    <!-- Methodology Section -->
+    <section id="methodology" class="card" style="margin-top: 3rem; margin-bottom: 3rem;">
+      <div class="card-header">
+        <span class="card-title">Statistical Methodology &amp; Mathematical Formulation</span>
+      </div>
+      <div class="card-body" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;">
+        <p style="margin-bottom: 1rem;">
+          Signal detection in pharmacovigilance evaluates whether a specific adverse drug reaction (ADR) is reported more frequently for a target drug than expected based on the background reporting rate across all other medications in the database.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+          <div>
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">1. Proportional Reporting Ratio (PRR)</h4>
+            <p>Compares the proportion of target reaction reports for the drug of interest against all other drugs:</p>
+            <div style="font-family: var(--font-mono); background: #0d131f; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.8rem;">
+              PRR = [a / (a + b)] / [c / (c + d)]
+            </div>
+            <p style="font-size: 0.8rem;">Evans/EMA criterion: PRR &ge; 2.0 with a &ge; 3 and &chi;&sup2; &ge; 4.0.</p>
+          </div>
+
+          <div>
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">2. Reporting Odds Ratio (ROR)</h4>
+            <p>Odds of reporting the event with the target drug relative to other drugs:</p>
+            <div style="font-family: var(--font-mono); background: #0d131f; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.8rem;">
+              ROR = (a &times; d) / (b &times; c)
+            </div>
+            <p style="font-size: 0.8rem;">Confidence intervals computed via Haldane-Anscombe asymptotic variance.</p>
+          </div>
+
+          <div>
+            <h4 style="color: var(--text-primary); margin-bottom: 0.5rem;">3. Yates' Corrected Chi-Square</h4>
+            <p>1-degree-of-freedom continuity-corrected test statistic for 2x2 contingency matrices:</p>
+            <div style="font-family: var(--font-mono); background: #0d131f; padding: 0.5rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.8rem;">
+              &chi;&sup2; = N(|ad - bc| - N/2)&sup2; / [(a+b)(c+d)(a+c)(b+d)]
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Plot Tooltip -->
+  <div id="plotTooltip" style="display: none; position: fixed; z-index: 100; pointer-events: none; background: #1e293b; border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>PV Signal Radar &bull; Open-Source (MIT License) &bull; Built with Go &amp; OpenFDA FAERS Data &bull; <a href="https://github.com/BMaeda84/pv-signal-radar" style="color: var(--accent-cyan); text-decoration: none;">GitHub Repository</a></p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
