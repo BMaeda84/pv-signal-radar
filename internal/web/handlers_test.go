@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/BMaeda84/pv-signal-radar/internal/cache"
-	"github.com/BMaeda84/pv-signal-radar/internal/feedback"
 )
 
 func newTestMux() *http.ServeMux {
@@ -67,6 +65,8 @@ func TestAPIMethodAndSecurityHeaders(t *testing.T) {
 	}
 	if got := recorder.Header().Get("Content-Security-Policy"); !strings.Contains(got, "default-src 'self'") {
 		t.Fatalf("expected restrictive CSP, got %q", got)
+	} else if strings.Contains(got, "unsafe-inline") {
+		t.Fatalf("CSP must not permit inline script/style execution, got %q", got)
 	}
 }
 
@@ -130,33 +130,22 @@ func TestAnalysisStartPacingStaysWithinUpstreamBudget(t *testing.T) {
 	}
 }
 
-func TestFeedbackEndpoint_SuccessAndValidation(t *testing.T) {
-	fbService, err := feedback.NewService("test_web_feedbacks.jsonl")
-	if err != nil {
-		t.Fatalf("failed to init feedback service: %v", err)
-	}
-	defer os.Remove("test_web_feedbacks.jsonl")
-
-	server := NewServer(nil, cache.New(5, time.Hour), fbService)
-	mux := http.NewServeMux()
-	server.Routes(mux)
-
-	// Valid POST
-	body := `{"email":"tester@anvisa.gov.br","comments":"Great comparative dashboard!","flagged_statistics":[{"drug":"Semaglutide","reaction":"NAUSEA","jurisdiction":"FDA","metric":"PRR","displayed_value":"3.77","reason":"Matches clinical trial data"}]}`
+func TestFeedbackEndpointIsRetiredWithoutCollectingPII(t *testing.T) {
+	mux := newTestMux()
+	body := `{"email":"researcher@example.org","comments":"must not be persisted"}`
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	mux.ServeHTTP(recorder, req)
 
-	if recorder.Code != http.StatusCreated {
-		t.Fatalf("expected 201 Created, got %d: %s", recorder.Code, recorder.Body.String())
+	if recorder.Code != http.StatusGone {
+		t.Fatalf("expected 410 Gone, got %d: %s", recorder.Code, recorder.Body.String())
 	}
-
-	var res map[string]interface{}
+	var res map[string]string
 	if err := json.NewDecoder(recorder.Body).Decode(&res); err != nil {
 		t.Fatalf("invalid json response: %v", err)
 	}
-	if res["status"] != "success" {
-		t.Errorf("expected success status, got %#v", res)
+	if res["code"] != "feedback_retired" || res["issues_url"] == "" {
+		t.Errorf("expected retired endpoint and GitHub route, got %#v", res)
 	}
 }

@@ -2,6 +2,7 @@ package openfda
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,7 +10,28 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/BMaeda84/pv-signal-radar/internal/stats"
 )
+
+func TestUnavailableFisherPIsOmittedInsteadOfSerializedAsSentinel(t *testing.T) {
+	result := stats.ContingencyTable{A: 10, B: 90, C: 20, D: 880, N: 1000}.Calculate("drug", "event")
+	summary := SignalSummary{
+		FisherExactP:  availableFisherP(result),
+		FisherExactOK: result.FisherExactOK,
+	}
+
+	payload, err := json.Marshal(summary)
+	if err != nil {
+		t.Fatalf("marshal summary: %v", err)
+	}
+	if strings.Contains(string(payload), "fisher_exact_two_sided_p") {
+		t.Fatalf("unavailable Fisher p-value must be absent, got %s", payload)
+	}
+	if !strings.Contains(string(payload), `"fisher_exact_available":false`) {
+		t.Fatalf("availability flag must remain explicit, got %s", payload)
+	}
+}
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
 
@@ -48,6 +70,18 @@ func TestGetUniverseTotalQueriesEntireDataset(t *testing.T) {
 	}
 	if total != 12345 {
 		t.Fatalf("expected full-dataset total 12345, got %d", total)
+	}
+}
+
+func TestGetUniverseTotalRejectsOversizedUpstreamResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = fmt.Fprintf(w, `{"meta":{"results":{"total":1}},"padding":"%s"}`, strings.Repeat("x", maxOpenFDAResponseBytes))
+	}))
+	defer server.Close()
+
+	if _, err := testClient(server).GetUniverseTotal(context.Background()); err == nil || !strings.Contains(err.Error(), "exceeds") {
+		t.Fatalf("expected bounded upstream-response failure, got %v", err)
 	}
 }
 

@@ -1,0 +1,19 @@
+{
+  "title": "PV Signal Radar: reproducible pharmacovigilance research and teaching platform",
+  "upload_type": "software",
+  "description": "A reproducible and auditable platform for teaching and academic exploration of spontaneous-report disproportionality. It is not a causal, clinical, GxP, diagnostic, or regulatory decision system.",
+  "creators": [
+    {
+      "name": "Maeda, Bruno"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "pharmacovigilance",
+    "FAERS",
+    "disproportionality analysis",
+    "reproducible research",
+    "drug safety education"
+  ]
+}

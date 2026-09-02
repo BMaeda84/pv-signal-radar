@@ -1,0 +1,174 @@
+name: Versioned release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing annotated semantic-version tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify and package without release credentials
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release.outputs.release_tag }}
+      release_commit: ${{ steps.release.outputs.release_commit }}
+      release_date: ${{ steps.release.outputs.release_date }}
+    steps:
+      - name: Validate tag syntax before checkout
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
+
+      - name: Check out the requested tag without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ inputs.tag }}
+
+      - name: Bind package identity to an annotated tag
+        id: release
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          test "$(git cat-file -t "refs/tags/${RELEASE_TAG}")" = tag
+          release_commit="$(git rev-list -n 1 "refs/tags/${RELEASE_TAG}")"
+          tag_object="$(git rev-parse "refs/tags/${RELEASE_TAG}^{tag}")"
+          tag_epoch="$(git for-each-ref --format='%(taggerdate:unix)' "refs/tags/${RELEASE_TAG}")"
+          release_date="$(date --utc --date="@${tag_epoch}" +%F)"
+          source_date_epoch="$(git show -s --format=%ct "$release_commit")"
+          test "$release_commit" = "$(git rev-parse HEAD)"
+          git merge-base --is-ancestor "$release_commit" refs/remotes/origin/main
+          test -z "$(git status --porcelain)"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "release_commit=$release_commit" >> "$GITHUB_OUTPUT"
+          echo "release_date=$release_date" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          echo "RELEASE_COMMIT=$release_commit" >> "$GITHUB_ENV"
+          echo "RELEASE_DATE=$release_date" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG_OBJECT=$tag_object" >> "$GITHUB_ENV"
+          echo "SOURCE_DATE_EPOCH=$source_date_epoch" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.6'
+          cache: true
+
+      - name: Derive expected tag and validate citation metadata
+        shell: bash
+        env:
+          PV_RADAR_RELEASE_TAG: ${{ inputs.tag }}
+          PV_RADAR_RELEASE_DATE: ${{ steps.release.outputs.release_date }}
+        run: |
+          set -euo pipefail
+          go test ./internal/version -run '^(TestReleaseMetadataTemplatesDoNotClaimPublication|TestWorkflowReleaseIdentity)$' -count=1
+
+      - name: Verify source before packaging
+        run: |
+          go mod verify
+          go test -race ./...
+          go vet ./...
+          go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+          go run github.com/securego/gosec/v2/cmd/gosec@v2.29.0 -quiet ./...
+          go run github.com/daveshanley/vacuum@v0.30.1 lint docs/openapi-v2.yaml --no-banner
+          go run github.com/zricethezav/gitleaks/v8@v8.30.1 git --redact --no-banner .
+
+      - name: Build and scan pinned execution environments
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --build-arg APPLICATION_COMMIT="$RELEASE_COMMIT" --tag pv-signal-radar:release-candidate .
+          git archive --format=tar "${RELEASE_COMMIT}:research" | docker build --platform linux/amd64 --build-arg PIPELINE_COMMIT="$RELEASE_COMMIT" --tag pv-signal-radar-research:release-candidate -
+          trivy="aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969"
+          docker run --rm --volume /var/run/docker.sock:/var/run/docker.sock "$trivy" image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 pv-signal-radar:release-candidate
+          docker run --rm --volume /var/run/docker.sock:/var/run/docker.sock "$trivy" image --scanners vuln --pkg-types os --skip-java-db-update --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 pv-signal-radar-research:release-candidate
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --cpus 2 --memory 4g --tmpfs /tmp:rw,noexec,nosuid,size=256m --entrypoint Rscript pv-signal-radar-research:release-candidate tests/run_tests.R
+
+      - name: Build release binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          ldflags="-s -w -X github.com/BMaeda84/pv-signal-radar/internal/version.Commit=${RELEASE_COMMIT}"
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=true -trimpath -ldflags="$ldflags" -o dist/pv-signal-radar-linux-amd64 ./cmd/server
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -buildvcs=true -trimpath -ldflags="$ldflags" -o dist/materialize-sqlite-linux-amd64 ./cmd/materialize-sqlite
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -buildvcs=true -trimpath -ldflags="$ldflags" -o dist/pv-signal-radar-windows-amd64.exe ./cmd/server
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -buildvcs=true -trimpath -ldflags="$ldflags" -o dist/materialize-sqlite-windows-amd64.exe ./cmd/materialize-sqlite
+
+      - name: Generate SBOMs and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
+          cyclonedx-gomod app -json -output dist/pv-signal-radar.cdx.json -main cmd/server .
+          cyclonedx-gomod app -json -output dist/materialize-sqlite.cdx.json -main cmd/materialize-sqlite .
+          cp research/renv.lock dist/research-renv.lock
+          cp research/Dockerfile dist/research-Dockerfile
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=64m --entrypoint Rscript pv-signal-radar-research:release-candidate -e 'write.csv(as.data.frame(installed.packages()[, c("Package", "Version", "License")]), stdout(), row.names=FALSE)' > dist/research-package-inventory.csv
+          go run ./internal/version/cmd/release-metadata \
+            -tag "$RELEASE_TAG" \
+            -date "$RELEASE_DATE" \
+            -revision "$RELEASE_COMMIT" \
+            -tag-object "$RELEASE_TAG_OBJECT" \
+            -source-date-epoch "$SOURCE_DATE_EPOCH" \
+            -citation-template CITATION.cff \
+            -zenodo-template .zenodo.json \
+            -output-dir dist
+          (cd dist && sha256sum -- * > checksums.sha256)
+
+      - name: Upload verified release candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-candidate-${{ steps.release.outputs.release_commit }}
+          if-no-files-found: error
+          retention-days: 7
+          path: dist/
+
+  publish:
+    name: Protected-environment publication
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: software-release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Require the protected-environment release gate
+        shell: bash
+        env:
+          SOFTWARE_RELEASE_GATE: ${{ secrets.SOFTWARE_RELEASE_GATE }}
+        run: |
+          set -euo pipefail
+          test "$SOFTWARE_RELEASE_GATE" = "enabled-after-protection-v1"
+
+      - name: Download the verified release candidate
+        uses: actions/download-artifact@3e5f45bfe42f2956c87754a2255bfff75c1c8908 # v8.0.1
+        with:
+          name: release-candidate-${{ needs.verify.outputs.release_commit }}
+          path: dist
+
+      - name: Attest released artifacts
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: 'dist/*'
+
+      - name: Publish GitHub release from verified bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.verify.outputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$RELEASE_TAG"

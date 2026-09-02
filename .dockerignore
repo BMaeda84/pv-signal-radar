@@ -1,20 +1,37 @@
-# Keep local checkout state, generated binaries, and possible local secrets out
-# of the Docker build context. The final image only needs source and go.mod.
-.git
-.github
-.gitignore
+.idea/
+.vscode/
+
+# Keep .git metadata in the builder so Go -buildvcs can reject dirty or
+# linker-mismatched research binaries. It is never copied to the runtime stage.
+# Never send generated research artifacts, result stores, or environment files
+# to the Docker build context.
+data/
+runtime/
+research/input/*
+!research/input/.gitignore
+!research/input/README.md
+research/output/*
+!research/output/.gitignore
+!research/output/README.md
+research/renv/library/
+research/.Rproj.user/
 .env
 .env.*
-!.env.example
+
+# Local build/test outputs and large scientific interchange formats.
 *.exe
 *.dll
 *.so
 *.dylib
 *.test
-coverage.txt
 *.out
 *.log
-.vscode
-.idea
-README*.md
-LICENSE
+/pv-signal-radar
+/materialize-sqlite
+/coverage.txt
+/*.cdx.json
+/server
+*.sqlite
+*.sqlite-*
+*.parquet
+*.zip

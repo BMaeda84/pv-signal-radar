@@ -1,0 +1,13 @@
+# Scientific environment and pipeline inputs are byte-bound by checksums.
+# Force LF even on Windows so core.autocrlf cannot silently rewrite them.
+research/renv.lock text eol=lf
+research/Dockerfile text eol=lf
+research/R/*.R text eol=lf
+research/.dockerignore text eol=lf
+research/README.md text eol=lf
+research/config/** text eol=lf
+research/input/** text eol=lf
+research/output/** text eol=lf
+research/sql/** text eol=lf
+research/tests/** text eol=lf
+research/tests/*.R text eol=lf

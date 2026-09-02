@@ -1,0 +1,4 @@
+# This file travels with `git archive <commit>:research`. Keeping the rule in
+# the subtree makes archive-based Docker contexts byte-stable even when the
+# caller's Git configuration uses platform-native checkout line endings.
+* text=auto eol=lf

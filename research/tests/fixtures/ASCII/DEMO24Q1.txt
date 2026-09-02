@@ -1,0 +1,6 @@
+primaryid$caseid$caseversion$event_dt$fda_dt$age$age_cod$sex$occr_country$reporter_country$serious
+1001$10$1$20240101$20240105$55$YR$F$US$US$1
+1002$10$2$20240201$20240205$56$YR$F$US$US$1
+2001$20$1$20240301$20240305$44$YR$M$BR$BR$2
+3001$30$1$20240315$20240320$70$YR$F$US$US$1
+4001$40$1$20240316$20240321$$$$$$

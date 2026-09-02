@@ -1,0 +1,1270 @@
+openapi: 3.1.0
+info:
+  title: PV Signal Radar API
+  version: 3.0.0-research.1
+  summary: Exploratory live screening and deterministic pharmacovigilance research results.
+  description: |-
+    The v1 analysis endpoint is a deprecated, mutable openFDA exploration and is
+    explicitly non-citable. The v2 endpoints operate only on registered frozen
+    datasets and content-addressed analysis results.
+
+    Reporting disproportionality is not incidence, risk, diagnosis, or evidence
+    of causality. Review flags are protocol-specific prioritization outcomes and
+    are not regulatory signal validation or confirmation.
+  license:
+    name: MIT
+    identifier: MIT
+externalDocs:
+  description: Intended use, methods, biases, governance, and validation evidence
+  url: https://github.com/BMaeda84/pv-signal-radar/tree/main/docs
+servers:
+  - url: /
+    description: Current PV Signal Radar deployment
+security: []
+tags:
+  - name: Service
+    description: Operational service metadata.
+  - name: Live exploration
+    description: Deprecated mutable openFDA exploration; not a reproducible research result.
+  - name: Research datasets
+    description: Frozen and provenance-bearing dataset catalog.
+  - name: Research analyses
+    description: Deterministic analyses bound to dataset, protocol, and software commit.
+paths:
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      tags: [Service]
+      summary: Read service and research-readiness status
+      description: |-
+        Operational health endpoint retained under the v1 path. A healthy service
+        does not imply that a scientifically validated research dataset is installed;
+        clients must inspect `research_analysis_enabled` and
+        `registered_dataset_count`. Registration establishes schema and integrity
+        checks only, not scientific validation.
+      responses:
+        '200':
+          description: Service status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+  /api/v1/analyze:
+    get:
+      operationId: exploreLiveOpenFDA
+      tags: [Live exploration]
+      summary: Run a deprecated live openFDA exploration
+      deprecated: true
+      description: |-
+        Mutable, non-deduplicated and non-citable exploration over openFDA. It
+        does not filter `patient.drug.drugcharacterization`, and therefore pools
+        suspect, concomitant, and interacting drug roles. It screens only a bounded
+        set of frequently reported source terms and does not compute Fisher exact
+        or multiplicity-adjusted q-values. Results can change without a software
+        release and must not be used as a formal research result.
+      parameters:
+        - name: drug
+          in: query
+          required: true
+          description: Drug text sent to the live openFDA query. Maximum 120 Unicode code points; CR/LF are rejected.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 120
+          example: semaglutide
+      responses:
+        '200':
+          description: Live, non-citable exploratory result.
+          headers:
+            Deprecation:
+              description: RFC 9745 Structured Field Date for 2026-09-02T00:00:00Z.
+              schema:
+                type: string
+                const: '@1788307200'
+            Sunset:
+              description: RFC 8594 HTTP-date after which clients must not rely on the live v1 endpoint.
+              schema:
+                type: string
+                const: 'Thu, 02 Sep 2027 00:00:00 GMT'
+            Link:
+              description: Link to the frozen-dataset catalog as successor version.
+              schema:
+                type: string
+            Warning:
+              description: Explicit warning that the mutable live result is not citable.
+              schema:
+                type: string
+            X-Cache-Status:
+              description: Whether this live response came from the short-lived in-process cache.
+              schema:
+                type: string
+                enum: [HIT, MISS]
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveAnalysisResponse'
+        '400':
+          description: Missing or invalid drug query.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                required:
+                  value: {code: drug_required, error: request could not be processed}
+                invalid:
+                  value: {code: invalid_drug, error: request could not be processed}
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '429':
+          description: Live-analysis concurrency or pacing limit reached.
+          headers:
+            Retry-After:
+              description: Seconds before another attempt.
+              schema:
+                type: string
+                pattern: '^[1-9][0-9]*$'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                busy:
+                  value: {code: analysis_busy, error: request could not be processed}
+                rate_limited:
+                  value: {code: analysis_rate_limited, error: request could not be processed}
+        '502':
+          description: The live openFDA analysis could not be completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example: {code: analysis_unavailable, error: request could not be processed}
+  /api/v1/feedback:
+    post:
+      operationId: retiredFeedback
+      tags: [Live exploration]
+      summary: Retired PII feedback endpoint
+      deprecated: true
+      description: This endpoint never accepts or stores the submitted body. Feedback is redirected to the public issue tracker.
+      responses:
+        '410':
+          description: Feedback collection is retired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetiredFeedbackResponse'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+  /api/v2/datasets:
+    get:
+      operationId: listResearchDatasets
+      tags: [Research datasets]
+      summary: List registered frozen research datasets
+      description: |-
+        Returns registered manifests that passed structural and integrity checks,
+        together with their canonical SHA-256 digests. Registration is not a claim
+        of scientific validation. An empty list with
+        `research_analysis_enabled: false` is the fail-closed state; the service
+        does not substitute live data for a missing frozen snapshot.
+      responses:
+        '200':
+          description: Dataset catalog, possibly empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatasetCatalogResponse'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          description: A configured manifest failed registry validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example: {code: dataset_registry_invalid, error: request could not be processed}
+  /api/v2/analyses:
+    post:
+      operationId: createOrResolveResearchAnalysis
+      tags: [Research analyses]
+      summary: Resolve or materialize a deterministic research analysis
+      description: |-
+        The normalized request, complete dataset manifest, and exact software
+        commit determine the 64-character `analysis_id`. The separate
+        `result_digest` binds the declared emitted-family metadata, row count,
+        and exact canonical row sequence. It is an integrity boundary, not proof
+        of upstream dataset or scientific-family completeness. Equivalent
+        requests are idempotent. Methods requiring a separately validated batch
+        artifact are never approximated by another estimator.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalysisRequest'
+            example:
+              schema_version: pv-signal-radar.research/v1
+              dataset_id: faers-2025q4
+              drug_concept_id: faers-prod_ai:SEMAGLUTIDE
+              drug_role: primary_suspect
+              event_scope: all_recorded_source_pts
+              comparator: all_other_eligible_reports
+              period: {}
+              methods: [fisher_exact, prr, ror]
+              threshold_profile_id: evans-educational-v1
+      responses:
+        '200':
+          description: An identical immutable result was already materialized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '201':
+          description: The deterministic result was materialized and persisted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '400':
+          description: Malformed, oversized, multi-value, or unknown-field JSON request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example: {code: invalid_analysis_request, error: request could not be processed}
+        '404':
+          description: Dataset is not registered or the valid protocol has no matching aggregate rows.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                dataset:
+                  value: {code: dataset_not_found, error: request could not be processed}
+                no_rows:
+                  value: {code: analysis_has_no_matching_rows, error: request could not be processed}
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '415':
+          description: The analysis mutation accepts JSON only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example: {code: unsupported_media_type, error: request could not be processed}
+        '409':
+          description: Protocol is valid, but its deterministic batch result is not materialized and no compatible engine is available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisNotMaterializedError'
+        '422':
+          description: Protocol is invalid, unsupported by this dataset, or requires a separately validated batch method.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_protocol:
+                  value: {code: invalid_analysis_protocol, error: request could not be processed}
+                batch_method:
+                  value: {code: analysis_requires_validated_batch_method, error: request could not be processed}
+                unsupported:
+                  value: {code: analysis_protocol_not_supported_by_dataset, error: request could not be processed}
+        '429':
+          description: A new analysis is already running or the per-process start-rate bound has been reached. Previously materialized analyses remain readable.
+          headers:
+            Retry-After:
+              description: Seconds before another attempt.
+              schema:
+                type: string
+                pattern: '^[1-9][0-9]*$'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                busy:
+                  value: {code: analysis_busy, error: request could not be processed}
+                rate_limited:
+                  value: {code: analysis_rate_limited, error: request could not be processed}
+        '500':
+          description: Persisted analysis state could not be validated or written.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_store:
+                  value: {code: analysis_store_invalid, error: request could not be processed}
+                save_failed:
+                  value: {code: analysis_store_failed, error: request could not be processed}
+        '503':
+          $ref: '#/components/responses/ResearchUnavailable'
+  /api/v2/analyses/{analysis_id}:
+    parameters:
+      - $ref: '#/components/parameters/AnalysisID'
+    get:
+      operationId: getResearchAnalysis
+      tags: [Research analyses]
+      summary: Read an immutable deterministic analysis result
+      responses:
+        '200':
+          description: Stored result with exact software and dataset provenance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalysisResult'
+        '400':
+          $ref: '#/components/responses/InvalidAnalysisID'
+        '404':
+          $ref: '#/components/responses/AnalysisNotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/AnalysisStoreInvalid'
+        '503':
+          $ref: '#/components/responses/ResearchUnavailable'
+  /api/v2/analyses/{analysis_id}/export:
+    parameters:
+      - $ref: '#/components/parameters/AnalysisID'
+    get:
+      operationId: exportResearchAnalysis
+      tags: [Research analyses]
+      summary: Download the deterministic reproducibility bundle
+      description: |-
+        Returns an immutable ZIP containing the result, normalized request,
+        complete dataset manifest, serving-environment metadata, scoped citation
+        metadata, a PowerShell reproduction script, generated files,
+        methods/readme text, and a SHA-256 checksum manifest. Dataset Parquet,
+        source records, the R lock, OS/container attestations, and SBOM remain
+        governed by the dataset/software release and are not fabricated here.
+      responses:
+        '200':
+          description: Reproducibility bundle.
+          headers:
+            Content-Disposition:
+              description: Deterministic filename containing the analysis ID.
+              schema:
+                type: string
+            Cache-Control:
+              description: '`public, immutable` for the create-once object in this analysis store; `analysis_id` addresses inputs, not ZIP bytes.'
+              schema:
+                type: string
+            X-Result-Digest:
+              description: SHA-256 digest of the declared family metadata, row count, and exact canonical result rows.
+              schema:
+                $ref: '#/components/schemas/SHA256'
+            X-Result-Row-Count:
+              description: Number of drug-event rows bound by `X-Result-Digest`.
+              schema:
+                type: integer
+                format: int64
+                minimum: 1
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/InvalidAnalysisID'
+        '404':
+          $ref: '#/components/responses/AnalysisNotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '429':
+          description: Another export is already being assembled in this process.
+          headers:
+            Retry-After:
+              description: Seconds before another attempt.
+              schema:
+                type: string
+                pattern: '^[1-9][0-9]*$'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example: {code: export_busy, error: request could not be processed}
+        '500':
+          description: Stored state was invalid or the bundle could not be generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_store:
+                  value: {code: analysis_store_invalid, error: request could not be processed}
+                export_failed:
+                  value: {code: analysis_export_failed, error: request could not be processed}
+        '503':
+          $ref: '#/components/responses/ResearchUnavailable'
+components:
+  parameters:
+    AnalysisID:
+      name: analysis_id
+      in: path
+      required: true
+      description: Input-content address derived from the manifest, normalized request, and software reference; result rows are separately bound by `result_digest`.
+      schema:
+        $ref: '#/components/schemas/SHA256'
+  responses:
+    MethodNotAllowed:
+      description: HTTP method is not allowed on this resource.
+      headers:
+        Allow:
+          required: true
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example: {code: method_not_allowed, error: request could not be processed}
+    InvalidAnalysisID:
+      description: Analysis ID or path suffix is malformed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example: {code: invalid_analysis_id, error: request could not be processed}
+    AnalysisNotFound:
+      description: No immutable result exists for this analysis ID.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example: {code: analysis_not_found, error: request could not be processed}
+    AnalysisStoreInvalid:
+      description: Stored analysis state failed integrity or contract validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example: {code: analysis_store_invalid, error: request could not be processed}
+    ResearchUnavailable:
+      description: No registered frozen research dataset/store is configured.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example: {code: research_dataset_unavailable, error: request could not be processed}
+  schemas:
+    SHA256:
+      type: string
+      pattern: '^[a-f0-9]{64}$'
+      example: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    GitCommit:
+      type: string
+      pattern: '^(?:[a-f0-9]{40}|[a-f0-9]{64})$'
+      description: Full clean Git object ID used to build or produce the artifact; abbreviated revisions are rejected.
+      example: 0123456789abcdef0123456789abcdef01234567
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, error]
+      properties:
+        code:
+          type: string
+        error:
+          type: string
+          const: request could not be processed
+    AnalysisNotMaterializedError:
+      type: object
+      additionalProperties: false
+      required: [code, analysis_id, error]
+      properties:
+        code:
+          type: string
+          const: analysis_not_materialized
+        analysis_id:
+          $ref: '#/components/schemas/SHA256'
+        error:
+          type: string
+          description: Stable human-readable explanation; clients should branch on `code`.
+    RetiredFeedbackResponse:
+      type: object
+      additionalProperties: false
+      required: [code, error, issues_url]
+      properties:
+        code:
+          type: string
+          const: feedback_retired
+        error:
+          type: string
+        issues_url:
+          type: string
+          format: uri
+    SoftwareReference:
+      type: object
+      additionalProperties: false
+      required: [name, version, commit]
+      properties:
+        name:
+          type: string
+          const: pv-signal-radar
+        version:
+          type: string
+          minLength: 1
+          maxLength: 64
+          example: 3.0.0-research.1
+        commit:
+          $ref: '#/components/schemas/GitCommit'
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+        - version
+        - cached_keys
+        - live_exploration
+        - registered_dataset_count
+        - research_analysis_enabled
+      properties:
+        status:
+          type: string
+          const: healthy
+        service:
+          type: string
+          const: pv-signal-radar
+        version:
+          type: string
+        cached_keys:
+          type: integer
+          minimum: 0
+        live_exploration:
+          type: string
+          const: US FDA FAERS via openFDA
+        registered_dataset_count:
+          type: integer
+          minimum: 0
+          description: Number of manifests that passed registry schema and integrity checks; this is not a scientific-validation count.
+        research_analysis_enabled:
+          type: boolean
+        online_materialization_enabled:
+          type: boolean
+          description: False by default; enabling public writes also requires external identity, rate, and storage quotas.
+        research_software:
+          $ref: '#/components/schemas/SoftwareReference'
+    LiveSource:
+      type: object
+      additionalProperties: false
+      required: [name, access_mode, selection_scope, selection_limit, deduplicated, frozen_snapshot]
+      properties:
+        name:
+          type: string
+        access_mode:
+          type: string
+          const: live_api
+        selection_scope:
+          type: string
+          const: most_frequently_reported_meddra_pt
+        selection_limit:
+          type: integer
+          minimum: 1
+        deduplicated:
+          type: boolean
+          const: false
+        frozen_snapshot:
+          type: boolean
+          const: false
+    ThresholdProfile:
+      type: object
+      additionalProperties: false
+      required: [id, name, intended_use, rule, regulatory]
+      properties:
+        id:
+          type: string
+          const: evans-educational-v1
+        name:
+          type: string
+        intended_use:
+          type: string
+          const: teaching_and_exploratory_review
+        rule:
+          type: string
+        regulatory:
+          type: boolean
+          const: false
+    ZeroCellCorrectionMetadata:
+      type: object
+      additionalProperties: false
+      required: [applied, method, added_to_each_cell]
+      properties:
+        applied:
+          type: boolean
+        method:
+          type: string
+          enum: [none, haldane_anscombe]
+        added_to_each_cell:
+          type: number
+          minimum: 0
+    MethodMetadata:
+      type: object
+      additionalProperties: false
+      required:
+        - prr_estimator
+        - prr_confidence_interval
+        - ror_estimator
+        - ror_confidence_interval
+        - association_tests
+        - screening_profile_id
+        - zero_cell_correction
+      properties:
+        prr_estimator:
+          type: string
+        prr_confidence_interval:
+          type: string
+        ror_estimator:
+          type: string
+        ror_confidence_interval:
+          type: string
+        association_tests:
+          type: array
+          items: {type: string}
+        screening_profile_id:
+          type: string
+        zero_cell_correction:
+          $ref: '#/components/schemas/ZeroCellCorrectionMetadata'
+    LiveSignalSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - reaction
+        - count_a
+        - drug_total
+        - reaction_total
+        - prr
+        - prr_lower_95
+        - prr_upper_95
+        - ror
+        - ror_lower_95
+        - ror_upper_95
+        - chi_square_yates
+        - p_value_approx
+        - fisher_exact_available
+        - screening_outcome
+        - exploratory_ranking_score
+        - interpretation
+        - method_metadata
+      properties:
+        reaction: {type: string}
+        count_a: {type: integer, format: int64, minimum: 0}
+        drug_total: {type: integer, format: int64, minimum: 0}
+        reaction_total: {type: integer, format: int64, minimum: 0}
+        prr: {type: number}
+        prr_lower_95: {type: number}
+        prr_upper_95: {type: number}
+        ror: {type: number}
+        ror_lower_95: {type: number}
+        ror_upper_95: {type: number}
+        chi_square_yates: {type: number, minimum: 0}
+        p_value_approx: {type: number, minimum: 0, maximum: 1}
+        fisher_exact_two_sided_p:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Present only when the exact test was actually computed; no numeric sentinel represents an unavailable result.
+        fisher_exact_available:
+          type: boolean
+          description: Whether fisher_exact_two_sided_p is present and was computed.
+        screening_outcome:
+          type: string
+          enum: [MEETS_EVANS_EDUCATIONAL_PROFILE, INTERMEDIATE_REVIEW, BELOW_PROFILE]
+        exploratory_ranking_score: {type: number}
+        interpretation: {type: string}
+        method_metadata:
+          $ref: '#/components/schemas/MethodMetadata'
+    OpenFDAAnalysis:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - citable
+        - query_drug
+        - normalized_drug
+        - drug_total_reports
+        - database_universe_n
+        - sdr_review_count
+        - total_reactions_analyzed
+        - signals
+        - selection_scope
+        - selection_limit
+        - timestamp
+        - disclaimer
+      properties:
+        mode: {type: string}
+        citable: {type: boolean, const: false}
+        query_drug: {type: string}
+        normalized_drug: {type: string}
+        drug_total_reports: {type: integer, format: int64, minimum: 0}
+        database_universe_n: {type: integer, format: int64, minimum: 0}
+        sdr_review_count: {type: integer, minimum: 0}
+        total_reactions_analyzed: {type: integer, minimum: 0}
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveSignalSummary'
+        selection_scope: {type: string}
+        selection_limit: {type: integer, minimum: 0}
+        timestamp: {type: string, format: date-time}
+        disclaimer: {type: string}
+    LiveAnalysisResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - citable
+        - source
+        - threshold_profile
+        - limitations
+        - fda_analysis
+        - query_drug
+        - normalized_drug
+        - drug_total_reports
+        - database_universe_n
+        - sdr_review_count
+        - total_reactions_analyzed
+        - signals
+        - timestamp
+        - disclaimer
+      properties:
+        mode:
+          type: string
+          const: live_exploration
+        citable:
+          type: boolean
+          const: false
+        source:
+          $ref: '#/components/schemas/LiveSource'
+        threshold_profile:
+          $ref: '#/components/schemas/ThresholdProfile'
+        limitations:
+          type: array
+          minItems: 1
+          items: {type: string}
+        fda_analysis:
+          $ref: '#/components/schemas/OpenFDAAnalysis'
+        query_drug: {type: string}
+        normalized_drug: {type: string}
+        drug_total_reports: {type: integer, format: int64, minimum: 0}
+        database_universe_n: {type: integer, format: int64, minimum: 0}
+        sdr_review_count: {type: integer, minimum: 0}
+        total_reactions_analyzed: {type: integer, minimum: 0}
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/LiveSignalSummary'
+        timestamp: {type: string, format: date-time}
+        disclaimer: {type: string}
+    SourceFile:
+      type: object
+      additionalProperties: false
+      required: [url, sha256, bytes]
+      properties:
+        url: {type: string, format: uri}
+        sha256:
+          $ref: '#/components/schemas/SHA256'
+        bytes: {type: integer, format: int64, minimum: 0}
+    DatasetSource:
+      type: object
+      additionalProperties: false
+      required: [name, publisher, landing_page, retrieved_at, files]
+      properties:
+        name: {type: string, minLength: 1}
+        publisher: {type: string, minLength: 1}
+        landing_page: {type: string, format: uri}
+        retrieved_at: {type: string, format: date-time}
+        license: {type: string}
+        files:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SourceFile'
+    DatasetCoverage:
+      type: object
+      additionalProperties: false
+      required: [start_date, end_date, geography, release]
+      properties:
+        start_date: {type: string, format: date}
+        end_date: {type: string, format: date}
+        geography: {type: string, minLength: 1}
+        release: {type: string, minLength: 1}
+    DatasetProcessing:
+      type: object
+      additionalProperties: false
+      required: [pipeline_version, source_commit, deduplication_policy, count_unit, drug_role_policy, exclusions]
+      properties:
+        pipeline_version: {type: string, minLength: 1}
+        source_commit:
+          $ref: '#/components/schemas/GitCommit'
+        materializer_commit:
+          description: Go materializer revision for a derived serving manifest; omitted on the canonical R dataset manifest.
+          $ref: '#/components/schemas/GitCommit'
+        deduplication_policy: {type: string, minLength: 1}
+        count_unit: {type: string, minLength: 1}
+        drug_role_policy: {type: string, minLength: 1}
+        exclusions:
+          type: [array, 'null']
+          items: {type: string}
+    VocabularyReference:
+      type: object
+      additionalProperties: false
+      required: [name, version, scope]
+      properties:
+        name: {type: string}
+        version: {type: string}
+        scope: {type: string}
+        license: {type: string}
+    DatasetArtifact:
+      type: object
+      additionalProperties: false
+      required: [name, path, media_type, sha256, bytes]
+      properties:
+        name: {type: string, minLength: 1}
+        path:
+          type: string
+          description: Portable slash-separated relative path; traversal, volumes, and backslashes are rejected.
+        media_type: {type: string, minLength: 1}
+        sha256:
+          $ref: '#/components/schemas/SHA256'
+        bytes: {type: integer, format: int64, minimum: 0}
+    FieldCompleteness:
+      type: object
+      additionalProperties: false
+      required: [field, population, denominator_records, missing_records, missing_percent]
+      properties:
+        field: {type: string, minLength: 1}
+        population:
+          type: string
+          const: eligible_reports
+          description: Population on which missingness is evaluated; superseded and otherwise ineligible reports are excluded.
+        denominator_records: {type: integer, format: int64, minimum: 0}
+        missing_records: {type: integer, format: int64, minimum: 0}
+        missing_percent: {type: number, minimum: 0, maximum: 100}
+    DatasetCompleteness:
+      type: object
+      additionalProperties: false
+      description: Distinct ETL populations; source rows, retained current reports, and eligible analysis reports are not interchangeable.
+      required: [source_demo_rows, current_case_reports, eligible_reports, drug_event_pairs]
+      properties:
+        source_demo_rows:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Raw rows read from DEMO, including case versions later superseded.
+        current_case_reports:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Retained report versions after selecting one current PRIMARYID per CASEID.
+        eligible_reports:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Current reports with at least one retained drug-role/event pair; denominator for aggregate analyses and field missingness.
+        drug_event_pairs: {type: integer, format: int64, minimum: 0}
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldCompleteness'
+    DatasetManifest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - dataset_id
+        - title
+        - source
+        - coverage
+        - processing
+        - artifacts
+        - completeness
+        - limitations
+      properties:
+        schema_version:
+          type: string
+          const: pv-signal-radar.research/v1
+        dataset_id:
+          type: string
+          pattern: '^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$'
+        title: {type: string, minLength: 1}
+        description: {type: string}
+        source:
+          $ref: '#/components/schemas/DatasetSource'
+        coverage:
+          $ref: '#/components/schemas/DatasetCoverage'
+        processing:
+          $ref: '#/components/schemas/DatasetProcessing'
+        vocabularies:
+          type: array
+          items:
+            $ref: '#/components/schemas/VocabularyReference'
+        artifacts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DatasetArtifact'
+        completeness:
+          $ref: '#/components/schemas/DatasetCompleteness'
+        limitations:
+          type: array
+          minItems: 1
+          items: {type: string}
+    DatasetCatalogEntry:
+      type: object
+      additionalProperties: false
+      description: Dataset manifest flattened with catalog validation metadata, matching the embedded Go response type.
+      required:
+        - schema_version
+        - dataset_id
+        - title
+        - source
+        - coverage
+        - processing
+        - artifacts
+        - completeness
+        - limitations
+        - manifest_sha256
+        - registration_state
+      properties:
+        schema_version:
+          type: string
+          const: pv-signal-radar.research/v1
+        dataset_id:
+          type: string
+          pattern: '^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$'
+        title: {type: string, minLength: 1}
+        description: {type: string}
+        source:
+          $ref: '#/components/schemas/DatasetSource'
+        coverage:
+          $ref: '#/components/schemas/DatasetCoverage'
+        processing:
+          $ref: '#/components/schemas/DatasetProcessing'
+        vocabularies:
+          type: array
+          items:
+            $ref: '#/components/schemas/VocabularyReference'
+        artifacts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DatasetArtifact'
+        completeness:
+          $ref: '#/components/schemas/DatasetCompleteness'
+        limitations:
+          type: array
+          minItems: 1
+          items: {type: string}
+        manifest_sha256:
+          $ref: '#/components/schemas/SHA256'
+        registration_state:
+          type: string
+          const: integrity_checked
+          description: Registry schema and integrity checks passed; scientific validation is a separate release gate.
+    DatasetCatalogResponse:
+      type: object
+      additionalProperties: false
+      required: [schema_version, datasets, research_analysis_enabled]
+      properties:
+        schema_version:
+          type: string
+          const: pv-signal-radar.research/v1
+        datasets:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatasetCatalogEntry'
+        research_analysis_enabled:
+          type: boolean
+        online_materialization_enabled:
+          type: boolean
+          description: Whether cache-miss protocols may create a new immutable analysis in this process.
+        software:
+          $ref: '#/components/schemas/SoftwareReference'
+    AnalysisPeriod:
+      type: object
+      additionalProperties: false
+      properties:
+        start_date: {type: string, format: date}
+        end_date: {type: string, format: date}
+    SubgroupSelection:
+      type: object
+      additionalProperties: false
+      required: [dimension, values]
+      properties:
+        dimension:
+          type: string
+          enum: [age_group, sex, country, seriousness, calendar_period]
+        values:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+    AnalysisRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - schema_version
+        - dataset_id
+        - drug_concept_id
+        - drug_role
+        - event_scope
+        - comparator
+        - methods
+        - threshold_profile_id
+      properties:
+        schema_version:
+          type: string
+          const: pv-signal-radar.research/v1
+        dataset_id:
+          type: string
+          pattern: '^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$'
+        drug_concept_id:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Current SQLite engine accepts `faers-prod_ai:<text>` or `faers-drugname:<text>`.
+        drug_role:
+          type: string
+          enum: [primary_suspect, secondary_suspect, concomitant, interacting, suspect, all]
+        event_scope:
+          type: string
+          const: all_recorded_source_pts
+        comparator:
+          type: string
+          const: all_other_eligible_reports
+        period:
+          $ref: '#/components/schemas/AnalysisPeriod'
+        subgroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgroupSelection'
+        methods:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [prr, ror, fisher_exact, bcpnn_ic, gps_ebgm]
+        threshold_profile_id:
+          type: string
+          enum: [none, evans-educational-v1]
+          description: Current engine implements `none` and the non-regulatory `evans-educational-v1` profile.
+    DatasetReference:
+      type: object
+      additionalProperties: false
+      required: [dataset_id, manifest_sha256, coverage, completeness]
+      properties:
+        dataset_id: {type: string}
+        manifest_sha256:
+          $ref: '#/components/schemas/SHA256'
+        coverage:
+          $ref: '#/components/schemas/DatasetCoverage'
+        completeness:
+          $ref: '#/components/schemas/DatasetCompleteness'
+    IntegerTable:
+      type: object
+      additionalProperties: false
+      required: [a, b, c, d, n]
+      description: Fixed-universe report-level 2x2 table; `n` equals `a+b+c+d`.
+      properties:
+        a: {type: integer, format: int64, minimum: 0}
+        b: {type: integer, format: int64, minimum: 0}
+        c: {type: integer, format: int64, minimum: 0}
+        d: {type: integer, format: int64, minimum: 0}
+        n: {type: integer, format: int64, minimum: 0}
+    MetricEstimate:
+      type: object
+      description: Estimator output with explicit cell-correction provenance.
+      additionalProperties: false
+      required: [method, measure, estimate, calculation]
+      if:
+        properties:
+          method: {const: fisher_exact}
+        required: [method]
+      then:
+        properties:
+          calculation:
+            properties:
+              input_cells: {const: observed}
+      properties:
+        method:
+          type: string
+          enum: [prr, ror, fisher_exact, bcpnn_ic, gps_ebgm]
+        measure:
+          type: string
+          description: Machine-readable estimator-specific measure name.
+        estimate:
+          type: number
+        lower_95:
+          type: number
+        upper_95:
+          type: number
+        p_value:
+          type: number
+          minimum: 0
+          maximum: 1
+        q_value:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Benjamini-Hochberg value across the events returned by this protocol, when applicable.
+        calculation:
+          type: object
+          $ref: '#/components/schemas/MetricCalculation'
+          description: Per-metric cell provenance. Fisher exact is additionally constrained by the runtime contract to observed integer cells.
+    MetricCalculation:
+      type: object
+      description: Declares whether a metric used observed cells or the pre-specified Haldane-Anscombe correction.
+      additionalProperties: false
+      required: [input_cells, zero_cell_correction]
+      properties:
+        input_cells:
+          type: string
+          enum: [observed, haldane_anscombe_corrected]
+        zero_cell_correction:
+          $ref: '#/components/schemas/ZeroCellCorrection'
+      oneOf:
+        - properties:
+            input_cells: {const: observed}
+            zero_cell_correction:
+              type: object
+              required: [applied, method, added_to_each_cell]
+              properties:
+                applied: {const: false}
+                method: {const: none}
+                added_to_each_cell: {const: 0}
+        - properties:
+            input_cells: {const: haldane_anscombe_corrected}
+            zero_cell_correction:
+              type: object
+              required: [applied, method, added_to_each_cell]
+              properties:
+                applied: {const: true}
+                method: {const: haldane_anscombe}
+                added_to_each_cell: {const: 0.5}
+    ZeroCellCorrection:
+      type: object
+      description: Explicit zero-cell adjustment; `none` is serialized rather than inferred from missing metadata.
+      additionalProperties: false
+      required: [applied, method, added_to_each_cell]
+      properties:
+        applied: {type: boolean}
+        method:
+          type: string
+          enum: [none, haldane_anscombe]
+        added_to_each_cell:
+          type: number
+          enum: [0, 0.5]
+    ReviewFlag:
+      type: object
+      additionalProperties: false
+      required: [profile_id, outcome, reason]
+      description: Protocol-specific review prioritization; not a regulatory or causal conclusion.
+      properties:
+        profile_id: {type: string}
+        outcome:
+          type: string
+          enum: [meets_profile, intermediate_review, below_profile]
+        reason: {type: string}
+    DrugEventResult:
+      type: object
+      additionalProperties: false
+      required:
+        - drug_concept_id
+        - event_concept_id
+        - event_term
+        - event_category
+        - contingency_table
+        - metrics
+      properties:
+        drug_concept_id: {type: string}
+        event_concept_id: {type: string}
+        event_term: {type: string}
+        event_category:
+          type: string
+          description: Current FAERS aggregate uses `unclassified_source_pt`; no unsupported clinical category is inferred.
+        contingency_table:
+          $ref: '#/components/schemas/IntegerTable'
+        metrics:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/MetricEstimate'
+        review_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewFlag'
+    ResultFamilyDefinition:
+      type: object
+      additionalProperties: false
+      required: [family_id, membership_rule, row_unit, row_order, digest_algorithm]
+      description: |-
+        Versioned definition of the rows emitted for one normalized protocol.
+        This declaration and its digest do not establish completeness of the
+        source dataset or of a scientifically expected hypothesis family.
+      properties:
+        family_id:
+          type: string
+          const: normalized_protocol_emitted_rows_v1
+        membership_rule:
+          type: string
+          const: all_matching_aggregate_events_emitted_without_ranking_or_top_n
+        row_unit:
+          type: string
+          const: unique_drug_event_pair
+        row_order:
+          type: string
+          const: event_concept_id_asc_utf8_binary_then_drug_concept_id_asc_utf8_binary
+        digest_algorithm:
+          type: string
+          const: sha256_canonical_json_v1
+    AnalysisResult:
+      type: object
+      additionalProperties: false
+      required: [schema_version, analysis_id, result_digest, row_count, result_family, software, dataset, dataset_manifest, request, rows, caveats]
+      properties:
+        schema_version:
+          type: string
+          const: pv-signal-radar.research/v1
+        analysis_id:
+          $ref: '#/components/schemas/SHA256'
+        result_digest:
+          allOf:
+            - $ref: '#/components/schemas/SHA256'
+          description: |-
+            SHA-256 over canonical JSON containing schema version,
+            `result_family`, `row_count`, and the exact ordered `rows`. It binds
+            the emitted family but does not prove upstream/scientific completeness.
+        row_count:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Exact number of drug-event rows in `rows` and in the digest seed.
+        result_family:
+          $ref: '#/components/schemas/ResultFamilyDefinition'
+        software:
+          $ref: '#/components/schemas/SoftwareReference'
+        dataset:
+          $ref: '#/components/schemas/DatasetReference'
+        dataset_manifest:
+          allOf:
+            - $ref: '#/components/schemas/DatasetManifest'
+          description: Complete manifest whose canonical SHA-256 equals `dataset.manifest_sha256` and participates in `analysis_id`.
+        request:
+          $ref: '#/components/schemas/AnalysisRequest'
+        rows:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/DrugEventResult'
+        caveats:
+          type: array
+          minItems: 1
+          items: {type: string}

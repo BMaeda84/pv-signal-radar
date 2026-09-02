@@ -1,821 +1,471 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PV Signal Radar - Farmacovigilância Aberta FDA &times; ANVISA</title>
-  <meta name="description" content="Motor estatístico open-source de detecção de sinais de segurança farmacológica com dados abertos do FDA FAERS e ANVISA VigiMed.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV Signal Radar — triagem exploratória de farmacovigilância</title>
+  <meta name="description" content="Plataforma aberta para ensino e triagem exploratória de desproporcionalidade em relatos públicos de farmacovigilância.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <a class="skip-link" href="#mainContent" data-i18n="skip">Pular para o conteúdo</a>
 
-  <!-- Header -->
-  <header>
-    <div class="container header-content">
-      <div class="logo-area">
-        <div class="logo-icon">PV</div>
-        <div class="logo-title">
-          <h1>Signal Radar <span class="version-tag">v2.1 Open Science</span></h1>
-          <span>Farmacovigilância Analítica &bull; FDA (EUA) &times; ANVISA (Brasil)</span>
-        </div>
-      </div>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="/" aria-label="PV Signal Radar">
+        <span class="brand-mark" aria-hidden="true">PV</span>
+        <span>
+          <strong>PV Signal Radar</strong>
+          <small data-i18n="brandSubtitle">Pesquisa reprodutível em farmacovigilância</small>
+        </span>
+        <span id="versionBadge" class="version-badge">research preview</span>
+      </a>
 
-      <!-- Main Navigation Tabs & Controls -->
+      <nav class="tabs" role="tablist" aria-label="Navegação principal" data-i18n-aria="mainNav">
+        <button id="tabAnalyze" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="panelAnalyze" data-panel="panelAnalyze" data-i18n="navAnalyze">Analisar</button>
+        <button id="tabMethods" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panelMethods" data-panel="panelMethods" data-i18n="navMethods">Métodos</button>
+        <button id="tabResearch" class="tab" type="button" role="tab" aria-selected="false" aria-controls="panelResearch" data-panel="panelResearch" data-i18n="navResearch">Pesquisa</button>
+      </nav>
+
       <div class="header-controls">
-        <nav class="nav-tabs">
-          <button type="button" class="tab-btn active" data-tab="radarTabView">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg>
-            Radar Comparativo
-          </button>
-          <button type="button" class="tab-btn" data-tab="methodologyTabView">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-            Metodologia &amp; Fontes
-          </button>
-          <button type="button" class="tab-btn" data-tab="feedbackTabView">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            Feedback &amp; Comunidade
-            <span id="headerFeedbackBadge" class="feedback-badge">0</span>
-          </button>
-        </nav>
-
-        <button type="button" id="themeToggleBtn" class="btn-theme-toggle" title="Alternar tema visual">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-          <span id="themeToggleText">Modo Escuro</span>
-        </button>
+        <label class="compact-control">
+          <span data-i18n="viewMode">Modo</span>
+          <select id="viewMode">
+            <option value="guided" data-i18n="guided">Guiado</option>
+            <option value="advanced" data-i18n="advanced">Avançado</option>
+          </select>
+        </label>
+        <label class="compact-control">
+          <span data-i18n="language">Idioma</span>
+          <select id="languageSelect">
+            <option value="pt-BR">Português</option>
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <button id="themeToggle" class="icon-button" type="button" data-i18n-aria="toggleTheme" aria-label="Alternar tema">◐</button>
       </div>
     </div>
   </header>
 
-  <main class="container" style="flex: 1;">
+  <main id="mainContent" class="container">
+    <section id="panelAnalyze" role="tabpanel" aria-labelledby="tabAnalyze">
+      <div class="integrity-banner" role="note">
+        <strong data-i18n="liveTitle">Exploração ao vivo — não citável como resultado de pesquisa</strong>
+        <span data-i18n="liveBody">A API openFDA muda ao longo do tempo, não deduplica casos aqui e avalia somente os termos mais reportados. Use esta tela para aprender e formular hipóteses; um snapshot v2 registrado e com integridade verificada ainda exige matriz de validação e revisão científica independente para uso formal.</span>
+      </div>
 
-    <!-- ==================== TAB 1: RADAR COMPARATIVO ==================== -->
-    <section id="radarTabView" class="tab-content active" style="display: block;">
-      
-      <!-- Search Area -->
-      <section class="hero">
-        <h2>Mineração de Sinais de Farmacovigilância</h2>
-        <p>Análise de desproporcionalidade estatística (PRR, ROR, &chi;&sup2; de Yates e IC 95%) harmonizada entre o banco global da FDA (FAERS) e a base nacional da ANVISA (VigiMed).</p>
-        
-        <div class="search-box-wrapper">
-          <form id="searchForm" class="search-form" style="position: relative;">
-            <div style="flex: 1; position: relative;">
-              <input type="text" id="drugInput" class="search-input" placeholder="Buscar por Princípio Ativo (DCB), Nome Comercial ou Código ATC..." autocomplete="off" required>
-              <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
-            </div>
-            <button type="submit" class="btn-primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              Analisar
-            </button>
-          </form>
-          <div class="search-presets">
-            <span>Substâncias frequentes:</span>
-            <button type="button" class="tag-preset" data-drug="Semaglutida">Semaglutida (Ozempic)</button>
-            <button type="button" class="tag-preset" data-drug="Dipirona">Dipirona (Metamizol)</button>
-            <button type="button" class="tag-preset" data-drug="Metformina">Metformina (Glifage)</button>
-            <button type="button" class="tag-preset" data-drug="Rosuvastatina">Rosuvastatina (Crestor)</button>
-            <button type="button" class="tag-preset" data-drug="Pembrolizumabe">Pembrolizumabe (Keytruda)</button>
-          </div>
+      <section class="hero" aria-labelledby="heroTitle">
+        <p class="eyebrow" data-i18n="eyebrow">FAERS / openFDA · triagem de relatos</p>
+        <h1 id="heroTitle" data-i18n="heroTitle">Explore desproporcionalidade sem confundir associação com causalidade</h1>
+        <p data-i18n="heroBody">Consulte uma substância, examine a tabela 2 × 2 e revise PRR, ROR e seus intervalos. O resultado é um SDR para revisão, não uma conclusão clínica.</p>
+
+        <form id="searchForm" class="search" role="search">
+          <label class="sr-only" for="drugInput" data-i18n="drugLabel">Substância ou medicamento</label>
+          <input id="drugInput" name="drug" maxlength="120" autocomplete="off" value="Semaglutide" data-i18n-placeholder="drugPlaceholder" placeholder="Ex.: Semaglutide">
+          <button type="submit" data-i18n="analyzeButton">Analisar</button>
+        </form>
+        <div class="presets" aria-label="Exemplos" data-i18n-aria="examples">
+          <span data-i18n="examples">Exemplos:</span>
+          <button type="button" data-drug="Semaglutide">Semaglutide</button>
+          <button type="button" data-drug="Rivaroxaban">Rivaroxaban</button>
+          <button type="button" data-drug="Pembrolizumab">Pembrolizumab</button>
         </div>
       </section>
 
-      <!-- State Box (Loading / Feedback) -->
-      <div id="stateBox" class="state-box">
-        <div id="loadingSpinner" class="spinner"></div>
-        <div class="state-text">Carregando dados das bases de farmacovigilância...</div>
-      </div>
+      <div id="statusBox" class="status-box" role="status" aria-live="polite"></div>
 
-      <!-- Results Container -->
-      <div id="resultsContainer" style="display: none;">
-        
-        <!-- Comparative Summary Banner -->
-        <div id="comparativeBanner" class="comparative-banner">
-          <div class="comparative-header">
-            <div class="comparative-title">
-              <span>Cruzamento Jurisdicional: <strong id="compDrugName" style="color: var(--accent-cyan);">-</strong></span>
-              <span id="compATCCode" class="atc-pill">ATC: -</span>
-            </div>
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
-              <span style="font-size: 0.8rem; color: var(--text-secondary);">Sinais Ativos: <strong>FDA: <span id="compFDASignals" style="color: var(--signal-active);">0</span></strong> &bull; <strong>ANVISA: <span id="compAnvisaSignals" style="color: var(--signal-potential);">0</span></strong></span>
-              <button class="btn-flag-stat" id="flagComparativeSummary" title="Anexar comparativo ao feedback">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-              </button>
-            </div>
+      <section id="results" hidden aria-labelledby="resultsTitle">
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow" data-i18n="currentAnalysis">Análise atual</p>
+            <h2 id="resultsTitle">—</h2>
           </div>
-          <ul id="compInsightsList" class="comparative-insights-list">
-            <!-- Dynamically populated -->
-          </ul>
-        </div>
-
-        <!-- Sub-tabs for Jurisdiction Selection -->
-        <div class="jurisdiction-tabs">
-          <button type="button" class="j-tab-btn active" data-jurisdiction="fda">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-            US FDA FAERS (Global)
-          </button>
-          <button type="button" class="j-tab-btn" data-jurisdiction="anvisa">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-            Brasil ANVISA VigiMed
-          </button>
-        </div>
-
-        <!-- Metrics Overview Grid -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-top">
-              <div class="stat-label">Base Ativa</div>
-            </div>
-            <div id="statJurisdictionTitle" class="stat-value" style="font-size: 1.25rem; color: var(--accent-cyan);">-</div>
-            <div class="stat-subtext">Jurisdição regulatória</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-top">
-              <div class="stat-label">Total de Relatos do Fármaco (a + b)</div>
-              <button class="btn-flag-stat" id="flagTotalReports" title="Questionar volume de relatos">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-              </button>
-            </div>
-            <div id="statTotalReports" class="stat-value">-</div>
-            <div class="stat-subtext">Notificações espontâneas registradas</div>
-          </div>
-
-          <div id="activeSignalsCard" class="stat-card">
-            <div class="stat-top">
-              <div class="stat-label">Sinais Ativos de Alerta</div>
-              <button class="btn-flag-stat" id="flagActiveSignals" title="Questionar quantidade de sinais ativos">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-              </button>
-            </div>
-            <div id="statActiveSignals" class="stat-value" style="color: var(--signal-active);">-</div>
-            <div class="stat-subtext">Critérios EMA: a &ge; 3, PRR &ge; 2.0, &chi;&sup2; &ge; 4.0</div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-top">
-              <div class="stat-label">Universo da Base (N)</div>
-            </div>
-            <div id="statUniverseN" class="stat-value">-</div>
-            <div class="stat-subtext">Total de registros no repositório</div>
+          <div class="result-meta">
+            <span id="sourceMode" class="pill">openFDA live</span>
+            <span id="analysisTime">—</span>
           </div>
         </div>
 
-        <!-- Main Dashboard Split Layout: Chart (Left) + 2x2 Contingency Inspector (Right) -->
-        <div class="analytics-split-grid">
-          
-          <!-- Statistical Chart Card (Volcano / Forest Plot) -->
-          <div class="card">
-            <div class="card-header">
-              <span class="card-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                Distribuição Estatística
-              </span>
-              <div class="chart-view-tabs">
-                <button type="button" class="chart-tab-btn active" data-chart="volcano">Volcano Plot</button>
-                <button type="button" class="chart-tab-btn" data-chart="forest">Forest Plot (IC 95%)</button>
+        <div class="context-card">
+          <div>
+            <strong data-i18n="interpretationBoundary">Limite de interpretação</strong>
+            <p data-i18n="interpretationText">Desproporcionalidade mede frequência relativa de reporte. Não estima risco, incidência, prevalência nem causalidade.</p>
+          </div>
+          <a href="https://open.fda.gov/apis/drug/event/" target="_blank" rel="noopener noreferrer" data-i18n="sourceDocumentation">Documentação da fonte</a>
+        </div>
+
+        <div class="metrics-grid">
+          <article class="metric">
+            <span data-i18n="drugReports">Relatos que mencionam a substância</span>
+            <strong id="drugReports">—</strong>
+            <small data-i18n="notExposure">Não é número de pacientes expostos</small>
+          </article>
+          <article class="metric">
+            <span data-i18n="sdrReview">SDRs para revisão</span>
+            <strong id="sdrCount">—</strong>
+            <small data-i18n="evansProfile">Perfil didático de Evans; não regulatório</small>
+          </article>
+          <article class="metric">
+            <span data-i18n="termsEvaluated">Termos avaliados</span>
+            <strong id="termCount">—</strong>
+            <small id="coverageNote">—</small>
+          </article>
+          <article class="metric">
+            <span data-i18n="universe">Universo openFDA atual</span>
+            <strong id="universeCount">—</strong>
+            <small data-i18n="mutableUniverse">Fonte mutável e sem snapshot nesta tela</small>
+          </article>
+        </div>
+
+        <div class="guided-only learning-callout">
+          <strong data-i18n="guidedQuestion">Pergunta correta para esta tela</strong>
+          <p data-i18n="guidedQuestionBody">“Este par medicamento–evento é reportado proporcionalmente mais vezes do que o mesmo evento com outros medicamentos?” A tela não responde “o medicamento causa o evento?”.</p>
+        </div>
+
+        <div class="analysis-grid">
+          <article class="card chart-card">
+            <header class="card-header">
+              <div>
+                <p class="eyebrow" data-i18n="visualAnalysis">Análise visual</p>
+                <h3 id="chartTitle" data-i18n="mapTitle">Mapa de desproporcionalidade</h3>
               </div>
-            </div>
+              <div class="segmented" role="group" aria-label="Tipo de gráfico" data-i18n-aria="chartType">
+                <button id="chartMapTab" class="active" type="button" aria-pressed="true" data-chart="map" data-i18n="map">Mapa</button>
+                <button id="chartForestTab" type="button" aria-pressed="false" data-chart="forest" data-i18n="forest">Forest plot</button>
+              </div>
+            </header>
             <div class="card-body">
-              <div class="plot-container">
-                <canvas id="volcanoCanvas"></canvas>
-              </div>
-              <div id="plotLegend" class="plot-legend">
-                <div class="legend-item">
-                  <div class="legend-dot" style="background: var(--signal-active);"></div>
-                  <span>Sinal Ativo</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-dot" style="background: var(--signal-potential);"></div>
-                  <span>Potencial</span>
-                </div>
-                <div class="legend-item">
-                  <div class="legend-dot" style="background: var(--signal-none);"></div>
-                  <span>Baseline</span>
-                </div>
+              <p id="chartDescription" class="chart-description"></p>
+              <div id="chart" class="chart" role="img" tabindex="0" aria-label="Gráfico de desproporcionalidade"></div>
+              <div class="legend" aria-hidden="true">
+                <span><i class="dot review"></i><span data-i18n="meetsProfile">Atende ao perfil</span></span>
+                <span><i class="dot watch"></i><span data-i18n="reviewPriority">Prioridade intermediária</span></span>
+                <span><i class="dot baseline"></i><span data-i18n="belowProfile">Abaixo do perfil</span></span>
               </div>
             </div>
-          </div>
+          </article>
 
-          <!-- 2x2 Contingency Table Inspector Card -->
-          <div id="inspectorCard" class="card">
-            <div class="card-header">
-              <span class="card-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
-                Inspetor de Matriz 2 &times; 2
-              </span>
-              <span id="inspectorReactionBadge" class="atc-pill" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Selecione um par</span>
-            </div>
+          <article class="card inspector-card">
+            <header class="card-header">
+              <div>
+                <p class="eyebrow" data-i18n="selectedPair">Par selecionado</p>
+                <h3 id="inspectorReaction">—</h3>
+              </div>
+              <span id="inspectorBadge" class="pill">—</span>
+            </header>
             <div class="card-body">
-              <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                Decomposição celular da hipótese de independência para: <strong id="inspectorReactionTitle" style="color: var(--text-primary);">-</strong>
-              </p>
-
-              <table class="inspector-table">
+              <table class="matrix">
+                <caption data-i18n="matrixCaption">Tabela de contingência 2 × 2, em relatos</caption>
                 <thead>
                   <tr>
-                    <th></th>
-                    <th>Evento Alvo ($E$)</th>
-                    <th>Outros Eventos ($\neg E$)</th>
-                    <th>Total Fármaco</th>
+                    <th scope="col"></th>
+                    <th scope="col" data-i18n="targetEvent">Evento-alvo (E)</th>
+                    <th scope="col" data-i18n="otherEvents">Outros eventos (não E)</th>
+                    <th scope="col" data-i18n="total">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td style="font-weight: 700; font-size: 0.725rem;">Fármaco Alvo ($D$)</td>
-                    <td id="cellA" class="cell-active">-</td>
-                    <td id="cellB" class="cell-num">-</td>
-                    <td id="cellMarginDrug" style="font-weight: 700; font-family: var(--font-mono);">-</td>
+                    <th scope="row" data-i18n="targetDrug">Substância-alvo (D)</th>
+                    <td id="cellA">—</td><td id="cellB">—</td><td id="rowDrug">—</td>
                   </tr>
                   <tr>
-                    <td style="font-weight: 700; font-size: 0.725rem;">Outros Fármacos ($\neg D$)</td>
-                    <td id="cellC" class="cell-num">-</td>
-                    <td id="cellD" class="cell-num">-</td>
-                    <td id="cellMarginOtherDrug" style="font-family: var(--font-mono); color: var(--text-muted);">-</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight: 700; font-size: 0.725rem;">Total Evento</td>
-                    <td id="cellMarginEvent" style="font-weight: 700; font-family: var(--font-mono);">-</td>
-                    <td id="cellMarginOtherEvent" style="font-family: var(--font-mono); color: var(--text-muted);">-</td>
-                    <td id="cellTotalUniverse" style="font-weight: 700; color: var(--accent-cyan); font-family: var(--font-mono);">-</td>
+                    <th scope="row" data-i18n="otherDrugs">Outras substâncias (não D)</th>
+                    <td id="cellC">—</td><td id="cellD">—</td><td id="rowOther">—</td>
                   </tr>
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row" data-i18n="total">Total</th>
+                    <td id="colEvent">—</td><td id="colOther">—</td><td id="matrixN">—</td>
+                  </tr>
+                </tfoot>
               </table>
-
-              <div class="inspector-meta">
-                <div class="inspector-meta-item">
-                  <strong>Valor Esperado ($E$):</strong>
-                  <span id="inspectorExpectedVal">-</span>
-                </div>
-                <div class="inspector-meta-item">
-                  <strong>Razão Obs / Esp ($a / E$):</strong>
-                  <span id="inspectorObsExpRatio">-</span>
-                </div>
-              </div>
+              <dl class="pair-summary">
+                <div><dt>PRR</dt><dd id="pairPrr">—</dd></div>
+                <div><dt>ROR</dt><dd id="pairRor">—</dd></div>
+                <div><dt>χ² Yates</dt><dd id="pairChi">—</dd></div>
+                <div><dt data-i18n="expected">Esperado</dt><dd id="pairExpected">—</dd></div>
+              </dl>
+              <p class="guided-only" data-i18n="matrixHelp">A célula “a” contém relatos em que a substância e o evento aparecem no mesmo relato; isso não prova que estejam causalmente ligados.</p>
             </div>
-          </div>
-
+          </article>
         </div>
 
-        <!-- Clinical Data Table Card -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <div class="card-header">
-            <span class="card-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              Pares Fármaco-Reação &amp; Indicadores Epidemiológicos
-            </span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Clique em uma linha para inspecionar a matriz 2 &times; 2</span>
-          </div>
-          <div class="table-responsive">
-            <table>
+        <section class="card table-card" aria-labelledby="tableTitle">
+          <header class="card-header">
+            <div>
+              <p class="eyebrow" data-i18n="tableEquivalent">Equivalente textual dos gráficos</p>
+              <h3 id="tableTitle" data-i18n="resultsTable">Resultados por termo MedDRA PT</h3>
+            </div>
+            <div class="advanced-only table-controls">
+              <label><span data-i18n="filter">Filtro</span>
+                <select id="levelFilter">
+                  <option value="all" data-i18n="all">Todos</option>
+                  <option value="MEETS_PROFILE" data-i18n="meetsProfile">Atende ao perfil</option>
+                  <option value="INTERMEDIATE_REVIEW" data-i18n="reviewPriority">Prioridade intermediária</option>
+                  <option value="BELOW_PROFILE" data-i18n="belowProfile">Abaixo do perfil</option>
+                </select>
+              </label>
+              <label><span data-i18n="sort">Ordenar</span>
+                <select id="sortResults">
+                  <option value="prr_desc">PRR ↓</option>
+                  <option value="count_desc" data-i18n="observedDesc">Observados ↓</option>
+                  <option value="name_asc" data-i18n="termAsc">Termo A–Z</option>
+                </select>
+              </label>
+            </div>
+          </header>
+          <div class="table-scroll">
+            <table id="signalsTable">
               <thead>
                 <tr>
-                  <th>Reação Adversa (MedDRA PT)</th>
-                  <th>Observado (a)</th>
-                  <th>Esperado (E)</th>
-                  <th>PRR [95% CI]</th>
-                  <th>ROR [95% CI]</th>
-                  <th>&chi;&sup2; (Yates)</th>
-                  <th>Status de Evans</th>
-                  <th style="text-align: right;">Reportar</th>
+                  <th scope="col" data-i18n="reaction">Evento reportado</th>
+                  <th scope="col" data-i18n="observed">Observado (a)</th>
+                  <th scope="col" data-i18n="expected">Esperado</th>
+                  <th scope="col">PRR (IC 95%)</th>
+                  <th scope="col">ROR (IC 95%)</th>
+                  <th scope="col">χ² Yates</th>
+                  <th scope="col" data-i18n="screening">Triagem</th>
                 </tr>
               </thead>
-              <tbody id="signalsTableBody">
-                <!-- Dynamically populated -->
-              </tbody>
+              <tbody id="signalsBody"></tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Collapsible Educational Glossary Accordion -->
-        <details class="glossary-card" style="margin-bottom: 2.5rem;">
-          <summary class="card-header glossary-summary">
-            <span class="card-title" style="cursor: pointer;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              Glossário Rápido de Siglas e Métricas Estatísticas
-            </span>
-            <span class="glossary-toggle-hint">
-              <span>Ver definições e como interpretar</span>
-              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </span>
-          </summary>
-          <div class="card-body">
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
-              Em farmacovigilância, as métricas de desproporcionalidade não medem causalidade direta nem risco absoluto, mas sim se um sintoma é <strong>notificado com frequência desproporcionalmente maior</strong> para determinado medicamento quando comparado a todo o restante da base de dados.
-            </p>
-
-            <div class="glossary-grid">
-              
-              <!-- PRR -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">PRR</span>
-                  <span class="glossary-term-badge">Proportional Reporting Ratio</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Razão de Proporcionalidade de Relatos.</strong> Compara a proporção em que esta reação ocorre para o remédio pesquisado contra a proporção da mesma reação para todos os outros remédios.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Um valor de <strong>PRR = 1,0</strong> é neutro (esperado). Um valor de <strong>PRR ≥ 2,0</strong> significa que o sintoma foi relatado <strong>duas vezes mais</strong> para este remédio do que a média da base, servindo como sinal de alerta para triagem.
-                </div>
-              </div>
-
-              <!-- ROR -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">ROR</span>
-                  <span class="glossary-term-badge">Reporting Odds Ratio</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Razão de Chances de Relato.</strong> Calcula a chance (odds) de um relato deste medicamento citar este sintoma versus a chance de citar qualquer outro sintoma da base (matriz 2 &times; 2).
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Funciona como o Odds Ratio epidemiológico. Se o valor e o limite inferior do IC 95% forem maiores que <strong>1,0</strong>, há uma associação estatística positiva consistente.
-                </div>
-              </div>
-
-              <!-- IC 95% -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">IC 95%</span>
-                  <span class="glossary-term-badge">Intervalo de Confiança</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Margem de Precisão Amostral.</strong> Faixa numérica calculada com 95% de certeza estatística onde se encontra a verdadeira razão de reporte.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Intervalos curtos (ex.: [2,10 - 2,45]) indicam muitos dados e alta precisão. Se o limite inferior for <strong>&gt; 1,0</strong>, o resultado é estatisticamente robusto e improvável de ser mero ruído amostral.
-                </div>
-              </div>
-
-              <!-- Chi-Square -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">&chi;&sup2; de Yates</span>
-                  <span class="glossary-term-badge">Qui-Quadrado</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Teste de Independência Estatística.</strong> Medida matemática que avalia se a relação observada entre o medicamento e a reação pode ter acontecido por puro acaso.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Quanto maior o &chi;&sup2;, mais improvável é a coincidência. No padrão regulatório internacional, um <strong>&chi;&sup2; ≥ 4,0</strong> equivale a uma probabilidade de erro (p-valor) menor que <strong>5% (p &lt; 0,05)</strong>.
-                </div>
-              </div>
-
-              <!-- Observado vs Esperado -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">Observado (a) vs. Esperado (E)</span>
-                  <span class="glossary-term-badge">Contagem Real vs. Teórica</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>a</strong> é o número real de relatos recebidos no sistema. <strong>E</strong> é a quantidade teórica de casos que esperaríamos receber se o remédio não tivesse nenhuma relação com a reação.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Se <strong>a &gt; E</strong> (ex.: a = 40 casos reais quando se esperavam apenas E = 10), há um excesso de relatos que justifica o cálculo da desproporcionalidade.
-                </div>
-              </div>
-
-              <!-- Status de Evans -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">Status de Evans</span>
-                  <span class="glossary-term-badge">Classificação Regulatória EMA</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Critério Triplo de Triagem de Segurança.</strong> Algoritmo clássico estabelecido por Evans et al. (2001) e adotado pela Agência Europeia de Medicamentos (EMA GVP IX).
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> É rotulado como <strong>Forte / Ativo</strong> quando atende simultaneamente a: <strong>a ≥ 3</strong> relatos, <strong>PRR ≥ 2,0</strong> e <strong>&chi;&sup2; ≥ 4,0</strong>. Não significa culpa biológica comprovada, mas sim prioridade de investigação.
-                </div>
-              </div>
-
-              <!-- MedDRA PT -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">MedDRA PT</span>
-                  <span class="glossary-term-badge">Preferred Term</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>Terminologia Médica Padronizada Internacional.</strong> Dicionário controlado globalmente pelo ICH para que um sintoma (ex.: <em>Náusea</em> ou <em>Pancreatite aguda</em>) tenha exatamente a mesma grafia no Brasil, EUA ou Europa.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Garante que relatos de diferentes hospitais e países sejam agrupados sob o mesmo conceito clínico exato sem ambiguidades.
-                </div>
-              </div>
-
-              <!-- WHO-ATC & DCB -->
-              <div class="glossary-item">
-                <div class="glossary-term-header">
-                  <span class="glossary-term-name">WHO-ATC &amp; DCB</span>
-                  <span class="glossary-term-badge">Classificação Ontológica</span>
-                </div>
-                <div class="glossary-definition">
-                  <strong>ATC (OMS):</strong> Código alfanumérico que cataloga o remédio pelo órgão em que atua (ex.: <code>A10</code> para trato digestivo/diabetes). <strong>DCB:</strong> Denominação Comum Brasileira oficial da Farmacopeia.
-                </div>
-                <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Permite comparar medicamentos pelo princípio ativo real, independentemente do nome comercial de fábrica (<em>Ozempic</em>, <em>Glifage</em>, <em>Novalgina</em>).
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </details>
-
-      </div>
+        </section>
+      </section>
     </section>
 
-    <!-- ==================== TAB 2: METODOLOGIA & FONTES OFICIAIS ==================== -->
-    <section id="methodologyTabView" class="tab-content" style="display: none; padding: 2rem 0;">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Tratado Metodológico, Repositório de Fontes &amp; Guia "Faça Você Mesmo" (DIY)</span>
-        </div>
-        <div class="card-body" style="line-height: 1.8; color: var(--text-secondary); font-size: 0.925rem;">
-          
-          <!-- Section 1: Anatomy of Global SRS -->
-          <h3 class="method-section-title">1. Anatomia das Bases de Notificação Espontânea</h3>
-          <p>
-            A farmacovigilância pós-comercialização opera fundamentalmente sobre Sistemas de Notificação Espontânea (SRS - <em>Spontaneous Reporting Systems</em>). Ao contrário de ensaios clínicos randomizados (RCTs), estas bases são observacionais, descentralizadas e não possuem coortes pré-definidas.
-          </p>
-          <ul style="padding-left: 1.5rem; margin: 0.75rem 0;">
-            <li><strong>FDA FAERS (EUA / Global):</strong> Mantido pelo US Food and Drug Administration. Abrange mais de 25 milhões de relatos desde 1968, com envios diretos (pacientes/médicos via MedWatch) e mandatórios (indústrias detentoras de registro). Acesso via API REST aberta e indexada em Elasticsearch.</li>
-            <li><strong>ANVISA VigiMed (Brasil):</strong> Sistema oficial do Brasil adotado em dez/2018 para medicamentos e vacinas, baseado no software <em>VigiFlow</em> do Uppsala Monitoring Centre (UMC/OMS) e no padrão <strong>ICH E2B(R3)</strong>, regulamentado pela <strong>RDC nº 406/2020</strong> e <strong>RDC nº 967/2025</strong>.</li>
-            <li><strong>WHO VigiBase (Global - UMC/OMS):</strong> O maior repositório de segurança farmacológica do planeta (+35M relatos de >130 países). Acesso público agregado via <a href="https://vigiaccess.org" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">VigiAccess.org</a>.</li>
-            <li><strong>EMA EudraVigilance (União Europeia):</strong> Repositório da Agência Europeia de Medicamentos para os 27 estados-membros, acessível publicamente para relatórios agregados em <a href="https://www.adrreports.eu" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">adrreports.eu</a>.</li>
-            <li><strong>Canada Vigilance (Health Canada):</strong> Base aberta canadense distribuída em arquivos ASCII estruturados via <a href="https://open.canada.ca" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">Open Data Canada</a>.</li>
+    <section id="panelMethods" role="tabpanel" aria-labelledby="tabMethods" hidden>
+      <div class="page-heading">
+        <p class="eyebrow" data-i18n="methodology">Metodologia</p>
+        <h1 data-i18n="methodsTitle">Do relato espontâneo ao SDR: pressupostos visíveis</h1>
+        <p data-i18n="methodsLead">O sistema usa desproporcionalidade para priorizar pares que exigem revisão. Detecção estatística, validação clínica, confirmação e avaliação são etapas diferentes.</p>
+      </div>
+      <div class="docs-grid">
+        <article class="card prose">
+          <h2 data-i18n="evansHeading">Perfil didático de Evans</h2>
+          <p data-i18n="evansBody">O rótulo atende ao perfil quando a ≥ 3, PRR ≥ 2 e χ² de Yates ≥ 4. É uma heurística histórica configurada para ensino, não um limiar universal da EMA.</p>
+          <div class="formula">PRR = [a / (a + b)] / [c / (c + d)]</div>
+          <div class="formula">ROR = (a × d) / (b × c)</div>
+          <p data-i18n="zeroCorrection">Quando existe célula zero, a API informa a correção de Haldane–Anscombe aplicada às estimativas logarítmicas.</p>
+        </article>
+        <article class="card prose">
+          <h2 data-i18n="failureModes">Modos de falha</h2>
+          <ul>
+            <li data-i18n="failureDuplicate">Duplicatas e versões de caso podem inflar contagens.</li>
+            <li data-i18n="failureStimulated">Notoriedade, mídia e tempo de mercado alteram o reporte.</li>
+            <li data-i18n="failureCooccurrence">Vários medicamentos e eventos no mesmo caso impedem atribuição individual pela API pública.</li>
+            <li data-i18n="failureDrugRole">A consulta ao vivo não filtra drugcharacterization; papéis de suspeito, concomitante e interagente ficam combinados.</li>
+            <li data-i18n="failureSelection">A tela ao vivo seleciona termos frequentes e pode omitir eventos raros importantes.</li>
+            <li data-i18n="failureDenominator">Sem exposição populacional, não há cálculo de incidência.</li>
           </ul>
+        </article>
+      </div>
+      <article class="card prose sources">
+        <h2 data-i18n="primarySources">Fontes primárias e reporte</h2>
+        <ul>
+          <li><a href="https://open.fda.gov/apis/drug/event/" target="_blank" rel="noopener noreferrer">openFDA Drug Event API</a></li>
+          <li><a href="https://www.fda.gov/drugs/fda-adverse-event-monitoring-system-aems/fda-adverse-event-monitoring-system-aems-latest-quarterly-data-files" target="_blank" rel="noopener noreferrer">FDA AEMS (formerly FAERS) quarterly data files</a></li>
+          <li><a href="https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-good-pharmacovigilance-practices-gvp-module-ix-signal-management-rev-1_en.pdf" target="_blank" rel="noopener noreferrer">EMA GVP Module IX</a></li>
+          <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11116242/" target="_blank" rel="noopener noreferrer">READUS-PV reporting recommendations</a></li>
+          <li><a href="https://doi.org/10.1002/pds.677" target="_blank" rel="noopener noreferrer">Evans et al. (2001)</a></li>
+        </ul>
+      </article>
+    </section>
 
-          <!-- Section 2: Mathematical Formulations -->
-          <h3 class="method-section-title">2. Formulação Matemática e Métricas de Desproporcionalidade</h3>
-          <p>
-            Para cada par Fármaco ($D$) &times; Evento Adverso ($E$), decompõe-se a população de relatos em uma matriz de contingência $2 \times 2$ contra o universo total ($N$):
-          </p>
-          <div style="background: #0d131f; padding: 1rem; border-radius: 6px; margin: 0.75rem 0; border: 1px solid var(--border-color); overflow-x: auto;">
-            <table style="width: 100%; font-size: 0.825rem; text-align: center;">
+    <section id="panelResearch" role="tabpanel" aria-labelledby="tabResearch" hidden>
+      <div class="page-heading">
+        <p class="eyebrow" data-i18n="researchWorkspace">Espaço de pesquisa</p>
+        <h1 data-i18n="researchTitle">Snapshots, protocolos e evidência reproduzível</h1>
+        <p data-i18n="researchLead">O catálogo confirma registro e integridade estrutural do snapshot; uso formal ainda exige a matriz de validação e aprovação científica independente.</p>
+      </div>
+
+      <div class="research-workspace-grid">
+        <article class="card research-protocol-card">
+          <header class="card-header">
+            <div>
+              <p class="eyebrow" data-i18n="protocolEyebrow">Protocolo determinístico</p>
+              <h2 data-i18n="protocolTitle">Configurar análise sobre snapshot congelado</h2>
+            </div>
+            <span class="pill">API v2</span>
+          </header>
+          <form id="researchForm" class="research-form" aria-describedby="researchFormBoundary">
+            <p id="researchFormBoundary" class="form-boundary" data-i18n="researchFormBoundary">A configuração integral participa do hash da análise. Repetir o mesmo protocolo sobre o mesmo manifesto produz o mesmo analysis_id.</p>
+
+            <div class="form-grid">
+              <label class="field field-wide" for="researchDataset">
+                <span data-i18n="datasetLabel">Dataset registrado</span>
+                <select id="researchDataset" name="dataset_id" required disabled>
+                  <option value="" data-i18n="datasetSelectPlaceholder">Carregando snapshots registrados…</option>
+                </select>
+                <small data-i18n="datasetHelp">Somente manifests aceitos pelo registro do servidor são listados.</small>
+              </label>
+
+              <label class="field field-wide" for="researchDrugConcept">
+                <span data-i18n="drugConceptLabel">Identificador explícito do medicamento</span>
+                <input id="researchDrugConcept" name="drug_concept_id" type="text" maxlength="256" required spellcheck="false" autocomplete="off" value="faers-prod_ai:SEMAGLUTIDE" pattern="faers-(prod_ai|drugname):.+">
+                <small data-i18n="drugConceptHelp">Use faers-prod_ai:&lt;texto exato&gt; ou faers-drugname:&lt;texto exato&gt;. Isto não inventa RxNorm, DCB ou ATC.</small>
+              </label>
+
+              <label class="field" for="researchDrugRole">
+                <span data-i18n="drugRoleLabel">Papel do medicamento</span>
+                <select id="researchDrugRole" name="drug_role" required>
+                  <option value="primary_suspect" data-i18n="rolePrimary">Primary suspect</option>
+                  <option value="secondary_suspect" data-i18n="roleSecondary">Secondary suspect</option>
+                  <option value="concomitant" data-i18n="roleConcomitant">Concomitant</option>
+                  <option value="interacting" data-i18n="roleInteracting">Interacting</option>
+                  <option value="suspect" data-i18n="roleSuspect">Suspect agregado</option>
+                  <option value="all" data-i18n="roleAll">Todos os papéis elegíveis</option>
+                </select>
+              </label>
+
+              <label class="field" for="researchThreshold">
+                <span data-i18n="thresholdLabel">Perfil de triagem</span>
+                <select id="researchThreshold" name="threshold_profile_id" required>
+                  <option value="none" data-i18n="thresholdNone">Nenhum threshold</option>
+                  <option value="evans-educational-v1" data-i18n="thresholdEvans">Evans didático</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="guided-only protocol-explanation" role="note">
+              <strong data-i18n="guidedProtocolTitle">Leitura guiada</strong>
+              <p data-i18n="guidedProtocolBody">O protocolo usa todos os PTs preservados na fonte, compara com os demais relatos elegíveis e executa PRR, ROR e Fisher. O perfil Evans apenas adiciona flags de revisão; não remove linhas nem confirma causalidade.</p>
+            </div>
+
+            <fieldset class="advanced-only method-fieldset">
+              <legend data-i18n="methodsLabel">Métodos executados</legend>
+              <label><input type="checkbox" name="research_method" value="prr" checked> PRR</label>
+              <label><input type="checkbox" name="research_method" value="ror" checked> ROR</label>
+              <label><input type="checkbox" name="research_method" value="fisher_exact" checked> Fisher exact</label>
+              <small data-i18n="methodsHelp">As escolhas alteram o protocolo e, portanto, o analysis_id; não alteram contagens a, b, c, d.</small>
+            </fieldset>
+
+            <dl class="protocol-constants">
+              <div><dt data-i18n="eventScopeLabel">Escopo de eventos</dt><dd><code>all_recorded_source_pts</code></dd></div>
+              <div><dt data-i18n="comparatorLabel">Comparator</dt><dd><code>all_other_eligible_reports</code></dd></div>
+              <div><dt data-i18n="periodLabel">Período e strata</dt><dd data-i18n="periodUnavailable">Não disponíveis neste agregado</dd></div>
+            </dl>
+
+            <div class="unavailable-methods" role="note" aria-labelledby="unavailableTitle">
+              <strong id="unavailableTitle" data-i18n="unavailableTitle">Não simulados nesta interface</strong>
+              <p data-i18n="unavailableBody">BCPNN/IC, GPS/EBGM, análises temporais e estratificadas exigem artefato batch validado compatível. A interface não substitui esses métodos por aproximações.</p>
+              <div aria-hidden="true"><span>BCPNN / IC025</span><span>GPS / EBGM / EB05</span><span>Temporal</span><span>Strata</span></div>
+            </div>
+
+            <div class="research-submit-row">
+              <button id="researchSubmit" type="submit" disabled data-i18n="runResearch">Executar análise reproduzível</button>
+              <span id="researchStatus" role="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </article>
+
+        <aside class="research-catalog-panel" aria-labelledby="datasetCatalogTitle">
+          <h2 id="datasetCatalogTitle" data-i18n="datasetCatalogTitle">Snapshots disponíveis</h2>
+          <p data-i18n="datasetCatalogBody">Confirme cobertura, geografia e hash do manifesto antes de interpretar qualquer resultado.</p>
+          <div id="datasetCatalog" class="dataset-catalog" aria-live="polite"></div>
+        </aside>
+      </div>
+
+      <section id="researchResult" class="research-result" aria-labelledby="researchResultTitle" hidden>
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow" data-i18n="researchResultEyebrow">Resultado determinístico</p>
+            <h2 id="researchResultTitle" tabindex="-1" data-i18n="researchResultTitle">Análise reproduzível</h2>
+          </div>
+          <a id="researchExport" class="button-link" hidden data-i18n="exportBundle">Exportar bundle ZIP</a>
+        </div>
+
+        <div class="research-result-meta">
+          <div><span data-i18n="analysisIDLabel">analysis_id</span><code id="researchAnalysisID">—</code></div>
+          <div><span data-i18n="resultDigestLabel">result_digest (linhas emitidas)</span><code id="researchResultDigest">—</code></div>
+          <div><span data-i18n="resultDatasetLabel">Dataset e manifesto</span><code id="researchResultDataset">—</code></div>
+          <div><span data-i18n="resultCoverageLabel">Cobertura</span><span id="researchResultCoverage">—</span></div>
+          <div><span data-i18n="resultRowsLabel">row_count (pares emitidos)</span><span id="researchResultRows">—</span></div>
+        </div>
+
+        <article class="card caveat-card">
+          <h3 data-i18n="caveatsTitle">Limitações vinculadas ao resultado</h3>
+          <p data-i18n="caveatsExact">Os textos abaixo são preservados exatamente como retornados pelo artefato científico.</p>
+          <ul id="researchCaveats"></ul>
+        </article>
+
+        <article class="card research-forest-card">
+          <header class="card-header">
+            <div>
+              <p class="eyebrow" data-i18n="researchVisualEyebrow">Visualização acessível</p>
+              <h3 data-i18n="researchForestTitle">Forest plot de PRR em escala logarítmica</h3>
+            </div>
+          </header>
+          <div class="card-body">
+            <p id="researchForestDescription" class="chart-description" data-i18n="researchForestDescription">O forest mostra um subconjunto visual declarado da página atual; a tabela paginada e o bundle preservam o resultado completo.</p>
+            <p id="researchForestSelection" class="visual-selection"></p>
+            <div id="researchForest" class="chart research-forest" role="img" tabindex="0" aria-describedby="researchForestDescription researchForestSelection researchTableHelp"></div>
+          </div>
+        </article>
+
+        <article class="card table-card" aria-labelledby="researchTableTitle">
+          <header class="card-header">
+            <div>
+              <p class="eyebrow" data-i18n="researchTableEquivalent">Equivalente textual paginado do resultado completo</p>
+              <h3 id="researchTableTitle" data-i18n="researchTableTitle">Contagens e estimativas por evento</h3>
+            </div>
+          </header>
+          <p id="researchTableHelp" class="table-help" data-i18n="researchTableHelp">a, b, c, d e N são contagens de relatos no universo documentado; p e q ausentes são exibidos como “—”, nunca como zero. As linhas são ordenadas por PRR decrescente, com estimativas ausentes ao final e desempate estável pelo texto do evento.</p>
+          <div class="research-pagination">
+            <p id="researchPaginationSummary" class="pagination-summary" role="status" aria-live="polite" tabindex="-1"></p>
+            <div class="pagination-controls" role="group" data-i18n-aria="researchPaginationLabel" aria-label="Paginação dos resultados">
+              <button id="researchPreviousPage" type="button" disabled data-i18n="researchPreviousPage">Página anterior</button>
+              <span id="researchPageStatus" aria-hidden="true"></span>
+              <button id="researchNextPage" type="button" disabled data-i18n="researchNextPage">Próxima página</button>
+            </div>
+          </div>
+          <div class="table-scroll research-table-region" role="region" tabindex="0" data-i18n-aria="researchTableRegion" aria-label="Tabela paginada de resultados da pesquisa" aria-describedby="researchPaginationSummary researchTableHelp">
+            <table id="researchResultsTable">
+              <caption class="sr-only" data-i18n="researchTableCaption">Resultado completo apresentado em páginas, ordenado por PRR decrescente.</caption>
               <thead>
                 <tr>
-                  <th></th>
-                  <th>Evento Alvo ($E$)</th>
-                  <th>Outros Eventos ($\neg E$)</th>
-                  <th>Total Margem</th>
+                  <th scope="col" data-i18n="researchEvent">Evento / categoria</th>
+                  <th scope="col">a</th><th scope="col">b</th><th scope="col">c</th><th scope="col">d</th><th scope="col">N</th>
+                  <th scope="col">PRR (IC 95%)</th>
+                  <th scope="col">ROR (IC 95%)</th>
+                  <th scope="col">Fisher p</th>
+                  <th scope="col">BH q</th>
+                  <th scope="col" data-i18n="researchFlags">Flags de revisão</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <td style="font-weight: 700;">Fármaco Alvo ($D$)</td>
-                  <td class="mono" style="color: var(--accent-cyan); font-weight: 700;">a</td>
-                  <td class="mono">b</td>
-                  <td class="mono">a + b</td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 700;">Outros Fármacos ($\neg D$)</td>
-                  <td class="mono">c</td>
-                  <td class="mono">d</td>
-                  <td class="mono">c + d</td>
-                </tr>
-                <tr>
-                  <td style="font-weight: 700;">Total Margem</td>
-                  <td class="mono">a + c</td>
-                  <td class="mono">b + d</td>
-                  <td class="mono" style="color: var(--accent-cyan); font-weight: 700;">N = a + b + c + d</td>
-                </tr>
-              </tbody>
+              <tbody id="researchResultsBody"></tbody>
             </table>
           </div>
+        </article>
+      </section>
 
-          <p><strong>A. Proportional Reporting Ratio (PRR - Evans et al., 2001):</strong></p>
-          <div class="formula-box">
-            PRR = [a / (a + b)] / [c / (c + d)]<br>
-            SE(ln PRR) = &radic;[1/a - 1/(a+b) + 1/c - 1/(c+d)]<br>
-            CI_95%(PRR) = [exp(ln PRR - 1.96 &times; SE), exp(ln PRR + 1.96 &times; SE)]
-          </div>
-
-          <p><strong>B. Reporting Odds Ratio (ROR - van Puijenbroek et al., 2002; Rothman et al., 2004):</strong></p>
-          <div class="formula-box">
-            ROR = (a &times; d) / (b &times; c)<br>
-            SE(ln ROR) = &radic;[1/a + 1/b + 1/c + 1/d]<br>
-            CI_95%(ROR) = [exp(ln ROR - 1.96 &times; SE), exp(ln ROR + 1.96 &times; SE)]
-          </div>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            <em>Correção de Haldane-Anscombe:</em> Se qualquer célula da matriz $2 \times 2$ for nula ($a, b, c, d = 0$), adiciona-se $+0.5$ a todas as quatro células para estabilizar o cálculo logarítmico e prevenir divisões por zero.
-          </p>
-
-          <p><strong>C. Chi-Quadrado com Correção de Continuidade de Yates (&chi;&sup2;):</strong></p>
-          <div class="formula-box">
-            &chi;&sup2;_Yates = N &times; (max(0, |a&times;d - b&times;c| - N/2))&sup2; / [(a+b)(c+d)(a+c)(b+d)]
-          </div>
-
-          <p><strong>D. Critérios Decisórios Regulatórios (Evans / EMA GVP Module IX):</strong></p>
-          <ul style="padding-left: 1.5rem;">
-            <li><strong>Sinal Ativo / Emergente:</strong> $a \ge 3$, $\text{PRR} \ge 2.0$, e $\chi^2_{\text{Yates}} \ge 4.0$ ($p < 0.0455$).</li>
-            <li><strong>Sinal Potencial:</strong> $a \ge 3$ e ($\text{PRR} \ge 1.5$ ou limite inferior do $\text{IC}_{95\%}(\text{ROR}) > 1.0$).</li>
-          </ul>
-
-          <!-- Section 3: Official Regulatory Guidelines & Primary Sources -->
-          <h3 class="method-section-title">3. Diretrizes Regulatórias e Fontes Oficiais Governamentais</h3>
-          <p>Consulte diretamente a legislação e os manuais técnicos oficiais:</p>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin: 1rem 0;">
-            
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇧🇷 ANVISA - Boas Práticas de Farmacovigilância</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Resolução RDC nº 406/2020 e alteração RDC nº 967/2025 (padrão WHODrug C3 e ICH E2B(R3)).</p>
-              <a href="https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/farmacovigilancia/legislacao" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Acessar Portal de Legislação ANVISA &rarr;
-              </a>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇧🇷 ANVISA - VigiMed &amp; Dados Abertos</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Acesso ao sistema oficial de notificações e catálogo de microdados abertos.</p>
-              <a href="https://www.gov.br/anvisa/pt-br/assuntos/fiscalizacao-e-monitoramento/notificacoes/vigimed" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Portal Oficial VigiMed ANVISA &rarr;
-              </a>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇺🇸 US FDA - Good Pharmacovigilance Practices</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">FDA Guidance for Industry: Good Pharmacovigilance Practices and Pharmacoepidemiologic Assessment (CDER/CBER).</p>
-              <a href="https://www.fda.gov/media/72257/download" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Baixar FDA Guidance PDF Oficial &rarr;
-              </a>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇺🇸 US FDA - openFDA API Reference</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Documentação técnica oficial para consultas de eventos adversos (FAERS API).</p>
-              <a href="https://open.fda.gov/apis/drug/event/" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Documentação openFDA API &rarr;
-              </a>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇪🇺 EMA - GVP Module IX (Signal Management)</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Guideline on good pharmacovigilance practices (GVP) – Module IX – Signal management (Rev 1).</p>
-              <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-good-pharmacovigilance-practices-gvp-module-ix-signal-management-rev-1_en.pdf" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Baixar EMA GVP Module IX PDF &rarr;
-              </a>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🌐 CIOMS - Working Group VIII Report</strong>
-              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Practical Aspects of Signal Detection in Pharmacovigilance (CIOMS Geneva, ISBN 9789290360827).</p>
-              <a href="https://cioms.ch/publications/product/practical-aspects-of-signal-detection-in-pharmacovigilance-report-of-cioms-working-group-viii/" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
-                Acessar Publicação Oficial CIOMS &rarr;
-              </a>
-            </div>
-
-          </div>
-
-          <!-- Section 4: Classic Peer-Reviewed Literature -->
-          <h3 class="method-section-title">4. Literatura Científica Seminal (Peer-Reviewed)</h3>
-          <ul style="padding-left: 1.5rem; margin: 0.75rem 0; font-size: 0.85rem;">
-            <li style="margin-bottom: 0.5rem;">
-              <strong>Evans, S. J., Waller, P. C., &amp; Davis, S. (2001).</strong> <em>Use of proportional reporting ratios (PRRs) for signal generation from spontaneous adverse drug reaction reports.</em> Pharmacoepidemiology and Drug Safety, 10(6), 483–486. <a href="https://doi.org/10.1002/pds.677" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.677</a>
-            </li>
-            <li style="margin-bottom: 0.5rem;">
-              <strong>van Puijenbroek, E. P., Bate, A., Leufkens, H. G., Croft, M., &amp; Egberts, A. C. (2002).</strong> <em>A comparison of statistical methods for signal detection in spontaneous reporting systems.</em> Pharmacoepidemiology and Drug Safety, 11(1), 3–10. <a href="https://doi.org/10.1002/pds.668" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.668</a>
-            </li>
-            <li style="margin-bottom: 0.5rem;">
-              <strong>Rothman, K. J., Lanes, S., &amp; Sacks, S. T. (2004).</strong> <em>The Reporting Odds Ratio and its advantages over the Proportional Reporting Ratio.</em> Pharmacoepidemiology and Drug Safety, 13(8), 519–523. <a href="https://doi.org/10.1002/pds.1001" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.1001</a>
-            </li>
-            <li style="margin-bottom: 0.5rem;">
-              <strong>Bate, A., Lindquist, M., Edwards, I. R., et al. (1998).</strong> <em>A Bayesian neural network method for adverse drug reaction signal generation (BCPNN / IC).</em> European Journal of Clinical Pharmacology, 54(4), 315–321. <a href="https://doi.org/10.1007/s002280050466" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1007/s002280050466</a>
-            </li>
-            <li style="margin-bottom: 0.5rem;">
-              <strong>DuMouchel, W. (1999).</strong> <em>Bayesian data mining in large frequency tables, with an application to the FDA Spontaneous Reporting System (MGPS / EBGM).</em> The American Statistician, 53(3), 177–190. <a href="https://doi.org/10.1080/00031305.1999.10474456" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1080/00031305.1999.10474456</a>
-            </li>
-          </ul>
-
-          <!-- Section 5: Authoritative Textbooks -->
-          <h3 class="method-section-title">5. Livros e Tratados de Referência</h3>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-            <em>Nota de Isenção: Os links abaixo apontam diretamente para as editoras e livrarias especializadas (Amazon/Wiley/CIOMS). Não há links afiliados nem comissões associadas ao criador desta plataforma.</em>
-          </p>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin: 1rem 0;">
-            
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--text-primary); display: block;">Mann's Pharmacovigilance (3ª Edição)</strong>
-              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Elizabeth B. Andrews &amp; Nicholas Moore &bull; Wiley-Blackwell</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-0-470-67104-7</code></div>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <a href="https://www.wiley.com/en-us/Mann%27s+Pharmacovigilance%2C+3rd+Edition-p-9780470671047" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Editora Wiley</a>
-                <a href="https://www.amazon.com/dp/0470671048" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
-              </div>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--text-primary); display: block;">Pharmacoepidemiology (6ª Edição)</strong>
-              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Brian L. Strom, Stephen E. Kimmel, Sean Hennessy &bull; Wiley</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-1-119-41342-4</code></div>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <a href="https://www.wiley.com/en-us/Pharmacoepidemiology%2C+6th+Edition-p-9781119413424" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Editora Wiley</a>
-                <a href="https://www.amazon.com/dp/1119413423" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
-              </div>
-            </div>
-
-            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-              <strong style="color: var(--text-primary); display: block;">Practical Drug Safety from A to Z (5ª Edição)</strong>
-              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Barton Cobert &amp; Pierre Biron &bull; Jones &amp; Bartlett Learning</div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-1-284-02381-7</code></div>
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <a href="https://www.amazon.com/dp/1284023810" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Section 6: DIY Step-by-Step Tutorial (Python & R) -->
-          <h3 class="method-section-title">6. Guia Prático "Faça Você Mesmo" (DIY) para Pesquisadores</h3>
-          <p>
-            Qualquer pesquisador pode reproduzir as métricas de desproporcionalidade de forma 100% independente executando consultas diretas aos repositórios governamentais.
-          </p>
-
-          <p><strong>A. Consulta Direta à API openFDA (cURL / Terminal):</strong></p>
-          <div class="formula-box" style="color: #94a3b8; font-size: 0.75rem;">
-            # 1. Total do Universo N na base FAERS<br>
-            curl "https://api.fda.gov/drug/event.json?search=_exists_:patient.reaction.reactionmeddrapt&limit=1"<br><br>
-            # 2. Total de relatos do Fármaco (a + b)<br>
-            curl "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.generic_name:\"SEMAGLUTIDE\"&limit=1"<br><br>
-            # 3. Top reações adversas do Fármaco (termos MedDRA PT)<br>
-            curl "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.generic_name:\"SEMAGLUTIDE\"&count=patient.reaction.reactionmeddrapt.exact&limit=10"
-          </div>
-
-          <p><strong>B. Script de Reprodução Automatizada em Python (Requests + SciPy):</strong></p>
-          <div class="formula-box" style="color: #a7f3d0; font-size: 0.75rem;">
-import math<br>
-<br>
-def calc_disproportionality(a, drug_total, rx_total, n_universe):<br>
-&nbsp;&nbsp;&nbsp;&nbsp;b = drug_total - a<br>
-&nbsp;&nbsp;&nbsp;&nbsp;c = rx_total - a<br>
-&nbsp;&nbsp;&nbsp;&nbsp;d = n_universe - (a + b + c)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;# Haldane-Anscombe continuity correction if any cell is 0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;adj = 0.5 if (a == 0 or b == 0 or c == 0 or d == 0) else 0.0<br>
-&nbsp;&nbsp;&nbsp;&nbsp;A, B, C, D = a + adj, b + adj, c + adj, d + adj<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;# PRR calculation<br>
-&nbsp;&nbsp;&nbsp;&nbsp;prr = (A / (A + B)) / (C / (C + D))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;se_prr = math.sqrt(1/A - 1/(A+B) + 1/C - 1/(C+D))<br>
-&nbsp;&nbsp;&nbsp;&nbsp;prr_ci = (math.exp(math.log(prr) - 1.96 * se_prr), math.exp(math.log(prr) + 1.96 * se_prr))<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;# ROR calculation<br>
-&nbsp;&nbsp;&nbsp;&nbsp;ror = (A * D) / (B * C)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;se_ror = math.sqrt(1/A + 1/B + 1/C + 1/D)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;ror_ci = (math.exp(math.log(ror) - 1.96 * se_ror), math.exp(math.log(ror) + 1.96 * se_ror))<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;# Yates' Chi-Square<br>
-&nbsp;&nbsp;&nbsp;&nbsp;num = max(0, abs(a*d - b*c) - n_universe / 2.0)**2<br>
-&nbsp;&nbsp;&nbsp;&nbsp;den = (a + b) * (c + d) * (a + c) * (b + d)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;chi2_yates = (n_universe * num) / den if den > 0 else 0.0<br>
-<br>
-&nbsp;&nbsp;&nbsp;&nbsp;is_signal = (a >= 3 and prr >= 2.0 and chi2_yates >= 4.0)<br>
-&nbsp;&nbsp;&nbsp;&nbsp;return {"PRR": prr, "PRR_CI": prr_ci, "ROR": ror, "ROR_CI": ror_ci, "Chi2": chi2_yates, "ActiveSignal": is_signal}<br>
-<br>
-# Exemplo: Semaglutida e Pancreatite (a=1420, a+b=58320, a+c=89400, N=26145890)<br>
-print(calc_disproportionality(1420, 58320, 89400, 26145890))
-          </div>
-
-          <p><strong>C. Script de Reprodução em R:</strong></p>
-          <div class="formula-box" style="color: #fed7aa; font-size: 0.75rem;">
-calc_pv_signal <- function(a, drug_total, rx_total, n_universe) {<br>
-&nbsp;&nbsp;b <- drug_total - a<br>
-&nbsp;&nbsp;c <- rx_total - a<br>
-&nbsp;&nbsp;d <- n_universe - (a + b + c)<br>
-&nbsp;&nbsp;adj <- ifelse(a==0 | b==0 | c==0 | d==0, 0.5, 0)<br>
-&nbsp;&nbsp;A <- a + adj; B <- b + adj; C <- c + adj; D <- d + adj<br>
-<br>
-&nbsp;&nbsp;prr <- (A / (A + B)) / (C / (C + D))<br>
-&nbsp;&nbsp;se_prr <- sqrt(1/A - 1/(A+B) + 1/C - 1/(C+D))<br>
-&nbsp;&nbsp;prr_ci <- exp(log(prr) + c(-1.96, 1.96) * se_prr)<br>
-<br>
-&nbsp;&nbsp;ror <- (A * D) / (B * C)<br>
-&nbsp;&nbsp;se_ror <- sqrt(1/A + 1/B + 1/C + 1/D)<br>
-&nbsp;&nbsp;ror_ci <- exp(log(ror) + c(-1.96, 1.96) * se_ror)<br>
-<br>
-&nbsp;&nbsp;chi2 <- (n_universe * (max(0, abs(a*d - b*c) - n_universe/2))^2) / ((a+b)*(c+d)*(a+c)*(b+d))<br>
-&nbsp;&nbsp;return(list(PRR=prr, PRR_CI95=prr_ci, ROR=ror, ROR_CI95=ror_ci, Chi2_Yates=chi2, Signal=(a>=3 & prr>=2 & chi2>=4)))<br>
-}
-          </div>
-
-          <!-- Section 7: Epistemic Biases & Caveats -->
-          <h3 class="method-section-title">7. Vieses Estruturais e Limitações Metodológicas</h3>
-          <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid var(--signal-active); padding: 1.25rem; border-radius: 4px; margin: 1rem 0;">
-            <ul style="padding-left: 1.2rem; line-height: 1.8;">
-              <li><strong>Ausência de Denominador Prescricional:</strong> Notificações espontâneas quantificam proporções de reporte, jamais incidência na população geral. O número de pacientes em uso do fármaco no mundo não consta nos bancos de SRS.</li>
-              <li><strong>Efeito Weber &amp; Notoriedade Mediática:</strong> Picos de reporte ocorrem nos primeiros 2 anos após a introdução no mercado ou após veiculação em jornais e redes sociais. Isso inflaciona a desproporcionalidade matemática sem que a toxicidade biológica tenha sofrido alteração.</li>
-              <li><strong>Não-Causalidade:</strong> A detecção de um sinal estatístico ($\text{PRR} \ge 2.0$, $\chi^2 \ge 4.0$) é estritamente um <em>instrumento de triagem e geração de hipóteses</em> para posterior avaliação em estudos analíticos de coorte ou caso-controle. Não constitui prova de causalidade farmacológica.</li>
-            </ul>
-          </div>
-
-        </div>
+      <div class="audience-grid">
+        <article class="card prose"><h2 data-i18n="students">Estudantes</h2><p data-i18n="studentsBody">Reproduza a matriz 2 × 2, compare métodos e entregue configuração e limitações junto ao trabalho.</p></article>
+        <article class="card prose"><h2 data-i18n="researchers">Pesquisadores</h2><p data-i18n="researchersBody">Pré-especifique snapshot, comparator, papel do medicamento, período, strata e thresholds; exporte o bundle completo.</p></article>
+        <article class="card prose"><h2 data-i18n="professionals">Profissionais</h2><p data-i18n="professionalsBody">Use SDRs para triagem humana e combine-os com revisão de casos, literatura e outras fontes de evidência.</p></article>
       </div>
+      <article class="card prose">
+        <h2 data-i18n="formalUseChecklist">Checklist mínimo para uso formal</h2>
+        <ol>
+          <li data-i18n="formal1">Citar versão do software, commit e dataset_id.</li>
+          <li data-i18n="formal2">Publicar protocolo e parâmetros antes da interpretação.</li>
+          <li data-i18n="formal3">Guardar manifestos, checksums, resultados e ambiente de execução.</li>
+          <li data-i18n="formal4">Relatar vieses, dados ausentes e análises de sensibilidade.</li>
+          <li data-i18n="formal5">Não converter SDR em causalidade, incidência ou recomendação clínica.</li>
+        </ol>
+        <a class="button-link" href="https://github.com/BMaeda84/pv-signal-radar/issues" target="_blank" rel="noopener noreferrer" data-i18n="openIssue">Abrir issue no GitHub</a>
+      </article>
     </section>
-
-    <!-- ==================== TAB 3: FEEDBACK & COMUNIDADE ==================== -->
-    <section id="feedbackTabView" class="tab-content" style="display: none; padding: 2rem 0;">
-      
-      <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
-        
-        <!-- Feedback Form & Flagged Queue -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Canal de Feedback &amp; Validação Científica</span>
-          </div>
-          <div class="card-body">
-            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
-              Pesquisadores, farmacêuticos e analistas regulatórios: usem este formulário para enviar dúvidas, relatar inconsistências de dados ou sugerir melhorias metodológicas diretamente ao mantenedor do projeto.
-            </p>
-
-            <!-- Flagged Statistics Queue Container -->
-            <div style="margin-bottom: 1.5rem;">
-              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
-                Estatísticas e Métricas Capturadas na Sessão
-              </h4>
-              <div id="noFlaggedItemsPrompt" style="background: #0d131f; padding: 1rem; border-radius: 6px; border: 1px dashed var(--border-color); font-size: 0.825rem; color: var(--text-muted); text-align: center;">
-                Nenhuma estatística selecionada ainda. Você pode navegar pelo <strong>Radar Comparativo</strong> e clicar no ícone de bandeira (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>) em qualquer linha da tabela ou card para anexar a este feedback.
-              </div>
-              <div id="flaggedQueueList">
-                <!-- Dynamically populated -->
-              </div>
-            </div>
-
-            <!-- Form -->
-            <form id="feedbackForm">
-              <div class="form-group">
-                <label for="feedbackEmail" class="form-label">Seu E-mail Institucional ou de Contato *</label>
-                <input type="email" id="feedbackEmail" class="form-control" placeholder="ex: pesquisador@universidade.edu.br" required>
-              </div>
-
-              <div class="form-group">
-                <label for="feedbackComments" class="form-label">Observações, Diagnóstico ou Sugestão Metodológica *</label>
-                <textarea id="feedbackComments" class="form-control" placeholder="Descreva os apontamentos sobre as estatísticas selecionadas ou sugestões para a plataforma..." required></textarea>
-              </div>
-
-              <div id="feedbackStatusMsg" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
-
-              <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                Enviar Feedback ao Mantenedor
-              </button>
-            </form>
-
-          </div>
-        </div>
-
-        <!-- Open Source, GitHub & AI Attribution -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Código Aberto, Governança &amp; Transparência de IA</span>
-          </div>
-          <div class="card-body" style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.7;">
-            
-            <h4 style="color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.4rem;">Repositório Público e Contribuições</h4>
-            <p>
-              O <strong>PV Signal Radar</strong> é mantido por <strong>Bruno Maeda</strong> sob licença open-source <strong>MIT</strong>. Contribuições são bem-vindas para inclusão de novos parsers de dados abertos (EudraVigilance, Canada Vigilance), aprimoramento de algoritmos bayesianos e correções na tabela de sinônimos farmacêuticos.
-            </p>
-            <div style="margin: 0.75rem 0;">
-              <a href="https://github.com/BMaeda84/pv-signal-radar" target="_blank" rel="noopener noreferrer" class="btn-link" style="display: inline-flex; width: auto;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                Acessar GitHub: BMaeda84/pv-signal-radar
-              </a>
-            </div>
-
-            <div class="attribution-banner">
-              <div class="attribution-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12.5"></path></svg>
-                Declaração de Transparência e Uso de IA
-              </div>
-              <p style="font-size: 0.825rem; color: var(--text-secondary); margin-top: 0.35rem;">
-                As ferramentas, pipelines de harmonização ontológica e modelagem estatística implementadas no <strong>PV Signal Radar</strong> foram desenvolvidas com assistência direta de Inteligência Artificial utilizando <strong>Google AI (plataforma Google Antigravity com o modelo Gemini 3.7 Flash High)</strong> e <strong>OpenAI GPT-Sol 5.6 Ultra</strong>.
-              </p>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
   </main>
 
-  <!-- Floating Feedback Queue Bar -->
-  <div id="floatingFeedbackBar" class="floating-feedback-bar" title="Clique para revisar suas estatísticas selecionadas e enviar o feedback">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-    <span style="font-size: 0.85rem; font-weight: 600;">Revisar Feedback</span>
-    <span id="queueCountPill" class="queue-pill">0</span>
-  </div>
-
-  <!-- Plot Tooltip -->
-  <div id="plotTooltip" style="display: none; position: fixed; z-index: 100; pointer-events: none; background: #1e293b; border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
-
-  <!-- Footer -->
-  <footer>
+  <footer class="site-footer">
     <div class="container">
-      <p>PV Signal Radar &bull; Open-Source (MIT License) &bull; Criado por <a href="https://github.com/BMaeda84" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Bruno Maeda</a> &bull; Assistido por Google AI &amp; OpenAI</p>
+      <p data-i18n="footer">PV Signal Radar · software MIT · dados sujeitos às licenças das fontes · não é aconselhamento médico</p>
     </div>
   </footer>
-
   <script src="/static/app.js"></script>
 </body>
 </html>
