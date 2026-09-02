@@ -15,7 +15,7 @@
       <div class="logo-area">
         <div class="logo-icon">PV</div>
         <div class="logo-title">
-          <h1>Signal Radar <span class="version-tag">v2.0 Dual-Base</span></h1>
+          <h1>Signal Radar <span class="version-tag">v2.1 Open Science</span></h1>
           <span>Farmacovigilância Analítica &bull; FDA (EUA) &times; ANVISA (Brasil)</span>
         </div>
       </div>
@@ -28,7 +28,7 @@
         </button>
         <button type="button" class="tab-btn" data-tab="methodologyTabView">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-          Metodologia &amp; Epistemologia
+          Metodologia &amp; Fontes
         </button>
         <button type="button" class="tab-btn" data-tab="feedbackTabView">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -208,68 +208,287 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 2: METODOLOGIA & EPISTEMOLOGIA ==================== -->
+    <!-- ==================== TAB 2: METODOLOGIA & FONTES OFICIAIS ==================== -->
     <section id="methodologyTabView" class="tab-content" style="display: none; padding: 2rem 0;">
       <div class="card">
         <div class="card-header">
-          <span class="card-title">Tratado Metodológico e Epistêmico em Farmacovigilância</span>
+          <span class="card-title">Tratado Metodológico, Repositório de Fontes &amp; Guia "Faça Você Mesmo" (DIY)</span>
         </div>
         <div class="card-body" style="line-height: 1.8; color: var(--text-secondary); font-size: 0.925rem;">
           
+          <!-- Section 1: Anatomy of Global SRS -->
           <h3 class="method-section-title">1. Anatomia das Bases de Notificação Espontânea</h3>
           <p>
-            A farmacovigilância pós-comercialização baseia-se em sistemas de notificação espontânea (SRS - <em>Spontaneous Reporting Systems</em>). Ao contrário de ensaios clínicos controlados, estes dados possuem natureza não-intervencionista, heterogênea e descentralizada.
+            A farmacovigilância pós-comercialização opera fundamentalmente sobre Sistemas de Notificação Espontânea (SRS - <em>Spontaneous Reporting Systems</em>). Ao contrário de ensaios clínicos randomizados (RCTs), estas bases são observacionais, descentralizadas e não possuem coortes pré-definidas.
           </p>
           <ul style="padding-left: 1.5rem; margin: 0.75rem 0;">
-            <li><strong>FDA FAERS (EUA / Global):</strong> Contém mais de 25 milhões de relatos desde 1968. Coleta notificações diretas de pacientes, profissionais de saúde e envio obrigatório pelas indústrias farmacêuticas detentoras de registro (MAHs via FDA MedWatch).</li>
-            <li><strong>ANVISA VigiMed (Brasil):</strong> Implementado em dezembro de 2018 em substituição ao módulo de medicamentos do Notivisa, baseado na arquitetura <em>VigiFlow</em> do Uppsala Monitoring Centre (UMC/OMS). Segue o padrão de interoperabilidade internacional <strong>ICH E2B(R3)</strong>.</li>
-            <li><strong>WHO VigiBase (Global - UMC):</strong> Maior repositório mundial (+35M relatos de mais de 130 países membros), agregando os envios nacionais do Brasil, EUA, União Europeia e demais nações.</li>
-            <li><strong>EMA EudraVigilance (União Europeia):</strong> Base mandatória da Agência Europeia de Medicamentos para os 27 estados-membros do EEE.</li>
-            <li><strong>Health Canada (Canada Vigilance):</strong> Base aberta canadense distribuída em arquivos ASCII estruturados.</li>
+            <li><strong>FDA FAERS (EUA / Global):</strong> Mantido pelo US Food and Drug Administration. Abrange mais de 25 milhões de relatos desde 1968, com envios diretos (pacientes/médicos via MedWatch) e mandatórios (indústrias detentoras de registro). Acesso via API REST aberta e indexada em Elasticsearch.</li>
+            <li><strong>ANVISA VigiMed (Brasil):</strong> Sistema oficial do Brasil adotado em dez/2018 para medicamentos e vacinas, baseado no software <em>VigiFlow</em> do Uppsala Monitoring Centre (UMC/OMS) e no padrão <strong>ICH E2B(R3)</strong>, regulamentado pela <strong>RDC nº 406/2020</strong> e <strong>RDC nº 967/2025</strong>.</li>
+            <li><strong>WHO VigiBase (Global - UMC/OMS):</strong> O maior repositório de segurança farmacológica do planeta (+35M relatos de >130 países). Acesso público agregado via <a href="https://vigiaccess.org" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">VigiAccess.org</a>.</li>
+            <li><strong>EMA EudraVigilance (União Europeia):</strong> Repositório da Agência Europeia de Medicamentos para os 27 estados-membros, acessível publicamente para relatórios agregados em <a href="https://www.adrreports.eu" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">adrreports.eu</a>.</li>
+            <li><strong>Canada Vigilance (Health Canada):</strong> Base aberta canadense distribuída em arquivos ASCII estruturados via <a href="https://open.canada.ca" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">Open Data Canada</a>.</li>
           </ul>
 
-          <h3 class="method-section-title">2. Harmonização Ontológica e Cruzamento de Dados</h3>
+          <!-- Section 2: Mathematical Formulations -->
+          <h3 class="method-section-title">2. Formulação Matemática e Métricas de Desproporcionalidade</h3>
           <p>
-            O cruzamento entre FDA e ANVISA exige a compatibilização de ontologias farmacológicas e clínicas:
+            Para cada par Fármaco ($D$) &times; Evento Adverso ($E$), decompõe-se a população de relatos em uma matriz de contingência $2 \times 2$ contra o universo total ($N$):
           </p>
-          <ul style="padding-left: 1.5rem; margin: 0.75rem 0;">
-            <li><strong>Ontologia de Fármacos:</strong> No Brasil, a ANVISA cataloga por <em>Denominação Comum Brasileira (DCB)</em> e nomes comerciais. O FDA utiliza <em>UNII</em> e <em>RxNorm (RxCUI)</em>. O elo canônico de cruzamento empregado nesta plataforma é a classificação <strong>WHO-ATC (Anatomical Therapeutic Chemical)</strong>, que unifica a substância ativa em nível internacional (ex: <code>A10BJ06</code> para Semaglutida).</li>
-            <li><strong>Ontologia de Reações Adversas:</strong> Ambas as agências utilizam a taxonomia <strong>MedDRA</strong> (<em>Medical Dictionary for Regulatory Activities</em>). Os dados são indexados no nível de <strong>Preferred Term (PT)</strong> e <strong>System Organ Class (SOC)</strong>, com suporte bilíngue (Português/Inglês) através dos códigos numéricos MedDRA.</li>
-          </ul>
+          <div style="background: #0d131f; padding: 1rem; border-radius: 6px; margin: 0.75rem 0; border: 1px solid var(--border-color); overflow-x: auto;">
+            <table style="width: 100%; font-size: 0.825rem; text-align: center;">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Evento Alvo ($E$)</th>
+                  <th>Outros Eventos ($\neg E$)</th>
+                  <th>Total Margem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight: 700;">Fármaco Alvo ($D$)</td>
+                  <td class="mono" style="color: var(--accent-cyan); font-weight: 700;">a</td>
+                  <td class="mono">b</td>
+                  <td class="mono">a + b</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700;">Outros Fármacos ($\neg D$)</td>
+                  <td class="mono">c</td>
+                  <td class="mono">d</td>
+                  <td class="mono">c + d</td>
+                </tr>
+                <tr>
+                  <td style="font-weight: 700;">Total Margem</td>
+                  <td class="mono">a + c</td>
+                  <td class="mono">b + d</td>
+                  <td class="mono" style="color: var(--accent-cyan); font-weight: 700;">N = a + b + c + d</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-          <h3 class="method-section-title">3. Formulação Matemática da Desproporcionalidade</h3>
-          <p>
-            A desproporcionalidade compara a frequência observada de uma associação Fármaco-Reação contra o que seria esperado pelo ruído de fundo da base:
-          </p>
-
-          <p><strong>A. Proportional Reporting Ratio (PRR - Evans et al.):</strong></p>
+          <p><strong>A. Proportional Reporting Ratio (PRR - Evans et al., 2001):</strong></p>
           <div class="formula-box">
             PRR = [a / (a + b)] / [c / (c + d)]<br>
             SE(ln PRR) = &radic;[1/a - 1/(a+b) + 1/c - 1/(c+d)]<br>
             CI_95%(PRR) = [exp(ln PRR - 1.96 &times; SE), exp(ln PRR + 1.96 &times; SE)]
           </div>
 
-          <p><strong>B. Reporting Odds Ratio (ROR - Van Puijenbroek et al.):</strong></p>
+          <p><strong>B. Reporting Odds Ratio (ROR - van Puijenbroek et al., 2002; Rothman et al., 2004):</strong></p>
           <div class="formula-box">
             ROR = (a &times; d) / (b &times; c)<br>
             SE(ln ROR) = &radic;[1/a + 1/b + 1/c + 1/d]<br>
             CI_95%(ROR) = [exp(ln ROR - 1.96 &times; SE), exp(ln ROR + 1.96 &times; SE)]
           </div>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">
-            <em>Nota de Estabilidade:</em> Aplica-se a correção de continuidade de Haldane-Anscombe (+0.5 em cada célula) quando qualquer contagem é nula para prevenir indeterminações assintóticas.
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            <em>Correção de Haldane-Anscombe:</em> Se qualquer célula da matriz $2 \times 2$ for nula ($a, b, c, d = 0$), adiciona-se $+0.5$ a todas as quatro células para estabilizar o cálculo logarítmico e prevenir divisões por zero.
           </p>
 
-          <p><strong>C. Chi-Quadrado com Correção de Yates (&chi;&sup2;):</strong></p>
+          <p><strong>C. Chi-Quadrado com Correção de Continuidade de Yates (&chi;&sup2;):</strong></p>
           <div class="formula-box">
-            &chi;&sup2;_Yates = N &times; (max(0, |ad - bc| - N/2))&sup2; / [(a+b)(c+d)(a+c)(b+d)]
+            &chi;&sup2;_Yates = N &times; (max(0, |a&times;d - b&times;c| - N/2))&sup2; / [(a+b)(c+d)(a+c)(b+d)]
           </div>
 
-          <h3 class="method-section-title">4. Vieses Críticos e Limitações Regulatórias</h3>
-          <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid var(--signal-active); padding: 1rem; border-radius: 4px; margin: 1rem 0;">
-            <ul style="padding-left: 1.2rem;">
-              <li><strong>Ausência de Denominador Prescricional:</strong> Os SRS quantificam <em>relatos</em>, não <em>incidência</em>. O número real de pacientes expostos ao tratamento no mundo não é registrado na base espontânea.</li>
-              <li><strong>Efeito Weber &amp; Notoriedade:</strong> Picos de notificação ocorrem nos primeiros 2 anos após o lançamento ou após matérias na imprensa e litígios judiciais, distorcendo o sinal estatístico sem que a toxicidade biológica real tenha se alterado.</li>
-              <li><strong>Não-Causalidade:</strong> Um sinal estatístico (&chi;&sup2; &ge; 4.0, PRR &ge; 2.0) é um <em>gerador de hipóteses</em> para investigação clínica detalhada, farmacocinética e estudos de coorte; jamais prova de causalidade farmacológica isolada.</li>
+          <p><strong>D. Critérios Decisórios Regulatórios (Evans / EMA GVP Module IX):</strong></p>
+          <ul style="padding-left: 1.5rem;">
+            <li><strong>Sinal Ativo / Emergente:</strong> $a \ge 3$, $\text{PRR} \ge 2.0$, e $\chi^2_{\text{Yates}} \ge 4.0$ ($p < 0.0455$).</li>
+            <li><strong>Sinal Potencial:</strong> $a \ge 3$ e ($\text{PRR} \ge 1.5$ ou limite inferior do $\text{IC}_{95\%}(\text{ROR}) > 1.0$).</li>
+          </ul>
+
+          <!-- Section 3: Official Regulatory Guidelines & Primary Sources -->
+          <h3 class="method-section-title">3. Diretrizes Regulatórias e Fontes Oficiais Governamentais</h3>
+          <p>Consulte diretamente a legislação e os manuais técnicos oficiais:</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇧🇷 ANVISA - Boas Práticas de Farmacovigilância</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Resolução RDC nº 406/2020 e alteração RDC nº 967/2025 (padrão WHODrug C3 e ICH E2B(R3)).</p>
+              <a href="https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/farmacovigilancia/legislacao" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Acessar Portal de Legislação ANVISA &rarr;
+              </a>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇧🇷 ANVISA - VigiMed &amp; Dados Abertos</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Acesso ao sistema oficial de notificações e catálogo de microdados abertos.</p>
+              <a href="https://www.gov.br/anvisa/pt-br/assuntos/fiscalizacao-e-monitoramento/notificacoes/vigimed" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Portal Oficial VigiMed ANVISA &rarr;
+              </a>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇺🇸 US FDA - Good Pharmacovigilance Practices</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">FDA Guidance for Industry: Good Pharmacovigilance Practices and Pharmacoepidemiologic Assessment (CDER/CBER).</p>
+              <a href="https://www.fda.gov/media/72257/download" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Baixar FDA Guidance PDF Oficial &rarr;
+              </a>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇺🇸 US FDA - openFDA API Reference</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Documentação técnica oficial para consultas de eventos adversos (FAERS API).</p>
+              <a href="https://open.fda.gov/apis/drug/event/" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Documentação openFDA API &rarr;
+              </a>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🇪🇺 EMA - GVP Module IX (Signal Management)</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Guideline on good pharmacovigilance practices (GVP) – Module IX – Signal management (Rev 1).</p>
+              <a href="https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-good-pharmacovigilance-practices-gvp-module-ix-signal-management-rev-1_en.pdf" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Baixar EMA GVP Module IX PDF &rarr;
+              </a>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--accent-cyan); display: block; margin-bottom: 0.25rem;">🌐 CIOMS - Working Group VIII Report</strong>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Practical Aspects of Signal Detection in Pharmacovigilance (CIOMS Geneva, ISBN 9789290360827).</p>
+              <a href="https://cioms.ch/publications/product/practical-aspects-of-signal-detection-in-pharmacovigilance-report-of-cioms-working-group-viii/" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">
+                Acessar Publicação Oficial CIOMS &rarr;
+              </a>
+            </div>
+
+          </div>
+
+          <!-- Section 4: Classic Peer-Reviewed Literature -->
+          <h3 class="method-section-title">4. Literatura Científica Seminal (Peer-Reviewed)</h3>
+          <ul style="padding-left: 1.5rem; margin: 0.75rem 0; font-size: 0.85rem;">
+            <li style="margin-bottom: 0.5rem;">
+              <strong>Evans, S. J., Waller, P. C., &amp; Davis, S. (2001).</strong> <em>Use of proportional reporting ratios (PRRs) for signal generation from spontaneous adverse drug reaction reports.</em> Pharmacoepidemiology and Drug Safety, 10(6), 483–486. <a href="https://doi.org/10.1002/pds.677" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.677</a>
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <strong>van Puijenbroek, E. P., Bate, A., Leufkens, H. G., Croft, M., &amp; Egberts, A. C. (2002).</strong> <em>A comparison of statistical methods for signal detection in spontaneous reporting systems.</em> Pharmacoepidemiology and Drug Safety, 11(1), 3–10. <a href="https://doi.org/10.1002/pds.668" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.668</a>
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <strong>Rothman, K. J., Lanes, S., &amp; Sacks, S. T. (2004).</strong> <em>The Reporting Odds Ratio and its advantages over the Proportional Reporting Ratio.</em> Pharmacoepidemiology and Drug Safety, 13(8), 519–523. <a href="https://doi.org/10.1002/pds.1001" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1002/pds.1001</a>
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <strong>Bate, A., Lindquist, M., Edwards, I. R., et al. (1998).</strong> <em>A Bayesian neural network method for adverse drug reaction signal generation (BCPNN / IC).</em> European Journal of Clinical Pharmacology, 54(4), 315–321. <a href="https://doi.org/10.1007/s002280050466" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1007/s002280050466</a>
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+              <strong>DuMouchel, W. (1999).</strong> <em>Bayesian data mining in large frequency tables, with an application to the FDA Spontaneous Reporting System (MGPS / EBGM).</em> The American Statistician, 53(3), 177–190. <a href="https://doi.org/10.1080/00031305.1999.10474456" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan);">DOI: 10.1080/00031305.1999.10474456</a>
+            </li>
+          </ul>
+
+          <!-- Section 5: Authoritative Textbooks -->
+          <h3 class="method-section-title">5. Livros e Tratados de Referência</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            <em>Nota de Isenção: Os links abaixo apontam diretamente para as editoras e livrarias especializadas (Amazon/Wiley/CIOMS). Não há links afiliados nem comissões associadas ao criador desta plataforma.</em>
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--text-primary); display: block;">Mann's Pharmacovigilance (3ª Edição)</strong>
+              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Elizabeth B. Andrews &amp; Nicholas Moore &bull; Wiley-Blackwell</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-0-470-67104-7</code></div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="https://www.wiley.com/en-us/Mann%27s+Pharmacovigilance%2C+3rd+Edition-p-9780470671047" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Editora Wiley</a>
+                <a href="https://www.amazon.com/dp/0470671048" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
+              </div>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--text-primary); display: block;">Pharmacoepidemiology (6ª Edição)</strong>
+              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Brian L. Strom, Stephen E. Kimmel, Sean Hennessy &bull; Wiley</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-1-119-41342-4</code></div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="https://www.wiley.com/en-us/Pharmacoepidemiology%2C+6th+Edition-p-9781119413424" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Editora Wiley</a>
+                <a href="https://www.amazon.com/dp/1119413423" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
+              </div>
+            </div>
+
+            <div style="background: #0d131f; border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+              <strong style="color: var(--text-primary); display: block;">Practical Drug Safety from A to Z (5ª Edição)</strong>
+              <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-bottom: 0.4rem;">Barton Cobert &amp; Pierre Biron &bull; Jones &amp; Bartlett Learning</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">ISBN: <code>978-1-284-02381-7</code></div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="https://www.amazon.com/dp/1284023810" target="_blank" rel="noopener noreferrer" class="btn-link" style="font-size: 0.75rem;">Amazon (Sem Afiliado)</a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Section 6: DIY Step-by-Step Tutorial (Python & R) -->
+          <h3 class="method-section-title">6. Guia Prático "Faça Você Mesmo" (DIY) para Pesquisadores</h3>
+          <p>
+            Qualquer pesquisador pode reproduzir as métricas de desproporcionalidade de forma 100% independente executando consultas diretas aos repositórios governamentais.
+          </p>
+
+          <p><strong>A. Consulta Direta à API openFDA (cURL / Terminal):</strong></p>
+          <div class="formula-box" style="color: #94a3b8; font-size: 0.75rem;">
+            # 1. Total do Universo N na base FAERS<br>
+            curl "https://api.fda.gov/drug/event.json?search=_exists_:patient.reaction.reactionmeddrapt&limit=1"<br><br>
+            # 2. Total de relatos do Fármaco (a + b)<br>
+            curl "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.generic_name:\"SEMAGLUTIDE\"&limit=1"<br><br>
+            # 3. Top reações adversas do Fármaco (termos MedDRA PT)<br>
+            curl "https://api.fda.gov/drug/event.json?search=patient.drug.openfda.generic_name:\"SEMAGLUTIDE\"&count=patient.reaction.reactionmeddrapt.exact&limit=10"
+          </div>
+
+          <p><strong>B. Script de Reprodução Automatizada em Python (Requests + SciPy):</strong></p>
+          <div class="formula-box" style="color: #a7f3d0; font-size: 0.75rem;">
+import math<br>
+<br>
+def calc_disproportionality(a, drug_total, rx_total, n_universe):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;b = drug_total - a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;c = rx_total - a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;d = n_universe - (a + b + c)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;# Haldane-Anscombe continuity correction if any cell is 0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;adj = 0.5 if (a == 0 or b == 0 or c == 0 or d == 0) else 0.0<br>
+&nbsp;&nbsp;&nbsp;&nbsp;A, B, C, D = a + adj, b + adj, c + adj, d + adj<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;# PRR calculation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prr = (A / (A + B)) / (C / (C + D))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;se_prr = math.sqrt(1/A - 1/(A+B) + 1/C - 1/(C+D))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prr_ci = (math.exp(math.log(prr) - 1.96 * se_prr), math.exp(math.log(prr) + 1.96 * se_prr))<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;# ROR calculation<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ror = (A * D) / (B * C)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;se_ror = math.sqrt(1/A + 1/B + 1/C + 1/D)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ror_ci = (math.exp(math.log(ror) - 1.96 * se_ror), math.exp(math.log(ror) + 1.96 * se_ror))<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;# Yates' Chi-Square<br>
+&nbsp;&nbsp;&nbsp;&nbsp;num = max(0, abs(a*d - b*c) - n_universe / 2.0)**2<br>
+&nbsp;&nbsp;&nbsp;&nbsp;den = (a + b) * (c + d) * (a + c) * (b + d)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;chi2_yates = (n_universe * num) / den if den > 0 else 0.0<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;is_signal = (a >= 3 and prr >= 2.0 and chi2_yates >= 4.0)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return {"PRR": prr, "PRR_CI": prr_ci, "ROR": ror, "ROR_CI": ror_ci, "Chi2": chi2_yates, "ActiveSignal": is_signal}<br>
+<br>
+# Exemplo: Semaglutida e Pancreatite (a=1420, a+b=58320, a+c=89400, N=26145890)<br>
+print(calc_disproportionality(1420, 58320, 89400, 26145890))
+          </div>
+
+          <p><strong>C. Script de Reprodução em R:</strong></p>
+          <div class="formula-box" style="color: #fed7aa; font-size: 0.75rem;">
+calc_pv_signal <- function(a, drug_total, rx_total, n_universe) {<br>
+&nbsp;&nbsp;b <- drug_total - a<br>
+&nbsp;&nbsp;c <- rx_total - a<br>
+&nbsp;&nbsp;d <- n_universe - (a + b + c)<br>
+&nbsp;&nbsp;adj <- ifelse(a==0 | b==0 | c==0 | d==0, 0.5, 0)<br>
+&nbsp;&nbsp;A <- a + adj; B <- b + adj; C <- c + adj; D <- d + adj<br>
+<br>
+&nbsp;&nbsp;prr <- (A / (A + B)) / (C / (C + D))<br>
+&nbsp;&nbsp;se_prr <- sqrt(1/A - 1/(A+B) + 1/C - 1/(C+D))<br>
+&nbsp;&nbsp;prr_ci <- exp(log(prr) + c(-1.96, 1.96) * se_prr)<br>
+<br>
+&nbsp;&nbsp;ror <- (A * D) / (B * C)<br>
+&nbsp;&nbsp;se_ror <- sqrt(1/A + 1/B + 1/C + 1/D)<br>
+&nbsp;&nbsp;ror_ci <- exp(log(ror) + c(-1.96, 1.96) * se_ror)<br>
+<br>
+&nbsp;&nbsp;chi2 <- (n_universe * (max(0, abs(a*d - b*c) - n_universe/2))^2) / ((a+b)*(c+d)*(a+c)*(b+d))<br>
+&nbsp;&nbsp;return(list(PRR=prr, PRR_CI95=prr_ci, ROR=ror, ROR_CI95=ror_ci, Chi2_Yates=chi2, Signal=(a>=3 & prr>=2 & chi2>=4)))<br>
+}
+          </div>
+
+          <!-- Section 7: Epistemic Biases & Caveats -->
+          <h3 class="method-section-title">7. Vieses Estruturais e Limitações Metodológicas</h3>
+          <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid var(--signal-active); padding: 1.25rem; border-radius: 4px; margin: 1rem 0;">
+            <ul style="padding-left: 1.2rem; line-height: 1.8;">
+              <li><strong>Ausência de Denominador Prescricional:</strong> Notificações espontâneas quantificam proporções de reporte, jamais incidência na população geral. O número de pacientes em uso do fármaco no mundo não consta nos bancos de SRS.</li>
+              <li><strong>Efeito Weber &amp; Notoriedade Mediática:</strong> Picos de reporte ocorrem nos primeiros 2 anos após a introdução no mercado ou após veiculação em jornais e redes sociais. Isso inflaciona a desproporcionalidade matemática sem que a toxicidade biológica tenha sofrido alteração.</li>
+              <li><strong>Não-Causalidade:</strong> A detecção de um sinal estatístico ($\text{PRR} \ge 2.0$, $\chi^2 \ge 4.0$) é estritamente um <em>instrumento de triagem e geração de hipóteses</em> para posterior avaliação em estudos analíticos de coorte ou caso-controle. Não constitui prova de causalidade farmacológica.</li>
             </ul>
           </div>
 
@@ -289,7 +508,7 @@
           </div>
           <div class="card-body">
             <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
-              Pesquisadores, farmacêuticos e analistas regulatórios: usem este formulário para enviar dúvidas, relatar inconsistências de dados ou sugerir melhorias metodológicas para o mantenedor do projeto.
+              Pesquisadores, farmacêuticos e analistas regulatórios: usem este formulário para enviar dúvidas, relatar inconsistências de dados ou sugerir melhorias metodológicas diretamente ao mantenedor do projeto.
             </p>
 
             <!-- Flagged Statistics Queue Container -->

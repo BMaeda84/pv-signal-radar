@@ -134,6 +134,23 @@ Content-Type: application/json
 }
 ```
 
+## Scientific Bibliography & Official Sources
+
+### Primary Regulatory Guidelines
+- **ANVISA (Brazil)**: [RDC nº 406/2020](https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/farmacovigilancia/legislacao) & [RDC nº 967/2025](https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/farmacovigilancia/legislacao) (Good Pharmacovigilance Practices & VigiMed).
+- **US FDA**: [FDA Guidance for Industry: Good Pharmacovigilance Practices and Pharmacoepidemiologic Assessment (2005)](https://www.fda.gov/media/72257/download).
+- **EMA (EU)**: [Guideline on good pharmacovigilance practices (GVP) – Module IX – Signal Management (Rev 1)](https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-good-pharmacovigilance-practices-gvp-module-ix-signal-management-rev-1_en.pdf).
+- **CIOMS**: [Practical Aspects of Signal Detection in Pharmacovigilance (Report of CIOMS Working Group VIII)](https://cioms.ch/publications/product/practical-aspects-of-signal-detection-in-pharmacovigilance-report-of-cioms-working-group-viii/). ISBN: `978-92-9036-082-7`.
+
+### Seminal Literature
+- **Evans, S. J., et al. (2001)**. *Use of proportional reporting ratios (PRRs) for signal generation from spontaneous adverse drug reaction reports*. *Pharmacoepidemiology and Drug Safety*, 10(6), 483–486. DOI: [10.1002/pds.677](https://doi.org/10.1002/pds.677)
+- **van Puijenbroek, E. P., et al. (2002)**. *A comparison of statistical methods for signal detection in spontaneous reporting systems*. *Pharmacoepidemiology and Drug Safety*, 11(1), 3–10. DOI: [10.1002/pds.668](https://doi.org/10.1002/pds.668)
+- **Rothman, K. J., et al. (2004)**. *The Reporting Odds Ratio and its advantages over the Proportional Reporting Ratio*. *Pharmacoepidemiology and Drug Safety*, 13(8), 519–523. DOI: [10.1002/pds.1001](https://doi.org/10.1002/pds.1001)
+
+### Textbooks (Non-Affiliate Links)
+- *Mann's Pharmacovigilance* (3rd Ed., Wiley-Blackwell). ISBN: `978-0-470-67104-7`. [Wiley](https://www.wiley.com/en-us/Mann%27s+Pharmacovigilance%2C+3rd+Edition-p-9780470671047) · [Amazon](https://www.amazon.com/dp/0470671048)
+- *Pharmacoepidemiology* (6th Ed., Wiley). ISBN: `978-1-119-41342-4`. [Wiley](https://www.wiley.com/en-us/Pharmacoepidemiology%2C+6th+Edition-p-9781119413424) · [Amazon](https://www.amazon.com/dp/1119413423)
+
 ## AI Transparency & Attribution
 
 The architecture, statistical pipelines, and cross-dataset harmonization of **PV Signal Radar** were developed with advanced Artificial Intelligence assistance from:
