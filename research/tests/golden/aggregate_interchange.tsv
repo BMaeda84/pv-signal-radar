@@ -1,0 +1,14 @@
+dataset_id	drug_text	drug_text_source	drug_role	event_pt	a	b	c	d	drug_reports	event_reports	universe_reports	comparator	event_scope	deduplication_policy
+fixture-2024q1	ASPIRIN	PROD_AI	all	HEADACHE	1	2	0	0	3	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	all	NAUSEA	2	1	0	0	3	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	all	RASH	1	2	0	0	3	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	primary_suspect	HEADACHE	1	1	0	1	2	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	primary_suspect	NAUSEA	1	1	1	0	2	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	primary_suspect	RASH	1	1	0	1	2	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	secondary_suspect	NAUSEA	1	0	1	1	1	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	suspect	HEADACHE	1	2	0	0	3	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	suspect	NAUSEA	2	1	0	0	3	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	ASPIRIN	PROD_AI	suspect	RASH	1	2	0	0	3	1	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	IBUPROFEN	PROD_AI	all	NAUSEA	1	0	1	1	1	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	IBUPROFEN	PROD_AI	primary_suspect	NAUSEA	1	0	1	1	1	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID
+fixture-2024q1	IBUPROFEN	PROD_AI	suspect	NAUSEA	1	0	1	1	1	2	3	all_other_eligible_reports	all_recorded_source_pts	MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID

@@ -4,7 +4,10 @@
 *.dll
 *.so
 *.dylib
-pv-signal-radar
+/pv-signal-radar
+/materialize-sqlite
+coverage.txt
+*.cdx.json
 
 # Test binary, built with `go test -c`
 *.test
@@ -24,3 +27,16 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Local runtime state and generated scientific artifacts must not become source
+# history. The research/input and output directories carry their own allowlists
+# so their README and .gitignore files remain versioned.
+data/
+runtime/
+research/renv/library/
+research/.Rproj.user/
+.env
+.env.*
+*.sqlite
+*.sqlite-*
+*.parquet

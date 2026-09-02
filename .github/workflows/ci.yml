@@ -15,25 +15,69 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.24'
+          go-version: '1.26.6'
           cache: true
 
       - name: Run Unit Tests with Coverage
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
+      - name: Verify module checksums
+        run: go mod verify
+
       - name: Run Static Analysis
         run: go vet ./...
 
+      - name: Scan reachable Go vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          govulncheck ./...
+
+      - name: Run Go security static analysis
+        run: go run github.com/securego/gosec/v2/cmd/gosec@v2.29.0 -quiet ./...
+
+      - name: Scan repository history for secrets
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          gitleaks git --redact --no-banner .
+
+      - name: Validate OpenAPI 3.1 contract
+        run: go run github.com/daveshanley/vacuum@v0.30.1 lint docs/openapi-v2.yaml --no-banner
+
       - name: Build Binary Verification
-        run: CGO_ENABLED=0 go build -v -o pv-signal-radar ./cmd/server
+        run: |
+          CGO_ENABLED=0 go build -trimpath -v -o pv-signal-radar ./cmd/server
+          CGO_ENABLED=0 go build -trimpath -v -o materialize-sqlite ./cmd/materialize-sqlite
+
+      - name: Generate CycloneDX SBOM
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0
+          cyclonedx-gomod app -json -output pv-signal-radar.cdx.json -main cmd/server .
+          cyclonedx-gomod app -json -output materialize-sqlite.cdx.json -main cmd/materialize-sqlite .
+
+      - name: Upload verification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: go-verification-evidence
+          if-no-files-found: error
+          path: |
+            coverage.txt
+            pv-signal-radar.cdx.json
+            materialize-sqlite.cdx.json
 
       - name: Build Container Verification
-        run: docker build --tag pv-signal-radar:ci .
+        run: docker build --build-arg APPLICATION_COMMIT="$GITHUB_SHA" --tag pv-signal-radar:ci .
+
+      - name: Reject fixable high or critical runtime-image vulnerabilities
+        run: |
+          docker run --rm --volume /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 pv-signal-radar:ci
 
       - name: Smoke Test Container Health Endpoint
         shell: bash
@@ -49,3 +93,45 @@ jobs:
           done
           docker logs pv-signal-radar-ci
           exit 1
+
+  research-environment:
+    name: Locked R environment and research fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore the reviewed lock and run fixtures during image build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=tar "${GITHUB_SHA}:research" | docker build --platform linux/amd64 --build-arg PIPELINE_COMMIT="$GITHUB_SHA" --tag pv-signal-radar-research:ci -
+      - name: Reject fixable high or critical scientific-image OS vulnerabilities
+        run: |
+          docker run --rm --volume /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969 image --scanners vuln --pkg-types os --skip-java-db-update --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 pv-signal-radar-research:ci
+      - name: Re-run fixtures offline with a read-only root filesystem
+        run: |
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --cpus 2 --memory 4g --tmpfs /tmp:rw,noexec,nosuid,size=256m --entrypoint Rscript pv-signal-radar-research:ci tests/run_tests.R
+      - name: Record lock checksum and installed package inventory
+        run: |
+          sha256sum research/renv.lock > research-lock.sha256
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,size=64m --entrypoint Rscript pv-signal-radar-research:ci -e 'write.csv(as.data.frame(installed.packages()[, c("Package", "Version", "License")]), stdout(), row.names=FALSE)' > research-package-inventory.csv
+      - name: Upload R environment evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: research-environment-evidence
+          if-no-files-found: error
+          path: |
+            research-lock.sha256
+            research-package-inventory.csv
+
+  browser-contract:
+    name: Browser source contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Parse browser JavaScript
+        run: node --check internal/web/static/app.js

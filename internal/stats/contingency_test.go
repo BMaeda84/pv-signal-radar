@@ -49,9 +49,10 @@ func TestContingencyTable_StandardSignal(t *testing.T) {
 		t.Errorf("expected ChiSquare > 100, got %v", result.ChiSquare)
 	}
 
-	// Signal classification should be SignalActive
-	if result.Signal != SignalActive {
-		t.Errorf("expected SignalActive, got %v", result.Signal)
+	// The configured educational profile should be met without implying a
+	// validated or confirmed safety signal.
+	if result.ScreeningOutcome != ScreeningMeetsProfile {
+		t.Errorf("expected ScreeningMeetsProfile, got %v", result.ScreeningOutcome)
 	}
 
 	// Confidence intervals sanity check: Lower < Estimate < Upper
@@ -64,7 +65,8 @@ func TestContingencyTable_StandardSignal(t *testing.T) {
 	}
 }
 
-// TestContingencyTable_SmallSample verifies that samples with a < 3 do not trigger active signals.
+// TestContingencyTable_SmallSample verifies that samples with a < 3 do not meet
+// the configured educational review profile.
 func TestContingencyTable_SmallSample(t *testing.T) {
 	table, err := NewContingencyTable(2, 10, 20, 10000)
 	if err != nil {
@@ -72,8 +74,8 @@ func TestContingencyTable_SmallSample(t *testing.T) {
 	}
 	result := table.Calculate("RareDrug", "RareEvent")
 
-	if result.Signal == SignalActive {
-		t.Errorf("expected sample with a < 3 to not be SignalActive, got %v", result.Signal)
+	if result.ScreeningOutcome == ScreeningMeetsProfile {
+		t.Errorf("expected sample with a < 3 to not meet profile, got %v", result.ScreeningOutcome)
 	}
 }
 
@@ -91,8 +93,8 @@ func TestContingencyTable_ZeroCellCorrection(t *testing.T) {
 	if math.IsNaN(result.ROR) || math.IsInf(result.ROR, 0) {
 		t.Errorf("ROR produced NaN or Inf for zero cell: %v", result.ROR)
 	}
-	if result.Signal != SignalNone {
-		t.Errorf("expected SignalNone for zero count, got %v", result.Signal)
+	if result.ScreeningOutcome != ScreeningBelowProfile {
+		t.Errorf("expected ScreeningBelowProfile for zero count, got %v", result.ScreeningOutcome)
 	}
 }
 

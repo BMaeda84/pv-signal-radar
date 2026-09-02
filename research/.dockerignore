@@ -1,0 +1,18 @@
+.Rbuildignore
+.Rhistory
+.Rprofile
+.Rproj.user/
+renv/
+
+# Source snapshots and produced datasets are mounted at runtime. Sending them
+# in the build context could leak unpublished data and invalidate layer reuse.
+input/**
+!input/.gitignore
+!input/README.md
+output/**
+!output/.gitignore
+!output/README.md
+
+*.parquet
+*.sqlite
+*.zip

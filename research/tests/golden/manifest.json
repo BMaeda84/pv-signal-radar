@@ -1,0 +1,93 @@
+{
+  "schema_version": "pv-signal-radar.research/v1",
+  "dataset_id": "fixture-2024q1",
+  "title": "Synthetic FAERS cross-language contract fixture",
+  "description": "Synthetic rows for R-to-Go contract verification only; not research evidence.",
+  "source": {
+    "name": "Synthetic FAERS-like fixture",
+    "publisher": "PV Signal Radar test suite",
+    "landing_page": "https://github.com/BMaeda84/pv-signal-radar",
+    "retrieved_at": "2026-09-02T00:00:00Z",
+    "license": "MIT test fixture",
+    "files": [
+      {
+        "url": "https://example.invalid/faers-fixture.zip",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 1
+      }
+    ]
+  },
+  "coverage": {
+    "start_date": "2024-01-01",
+    "end_date": "2024-03-31",
+    "geography": "synthetic",
+    "release": "fixture-2024q1"
+  },
+  "processing": {
+    "pipeline_version": "pv-signal-radar.faers-etl/fixture-v1",
+    "source_commit": "e4223c5cadfd1b614c1718db8a9f2965a7c1bc7a",
+    "deduplication_policy": "MAX_CASEVERSION_PER_CASEID_THEN_MAX_PRIMARYID",
+    "count_unit": "Unique PRIMARYID x source drug text x role x source PT; marginals count unique PRIMARYID",
+    "drug_role_policy": "Map FDA PS/SS/C/I and derive deduplicated suspect/all unions",
+    "exclusions": [
+      "Synthetic fixture only",
+      "Superseded case versions"
+    ]
+  },
+  "vocabularies": [
+    {
+      "name": "Synthetic source PT text",
+      "version": "fixture-v1",
+      "scope": "Unclassified source terms",
+      "license": "MIT test fixture"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "aggregate_interchange.tsv",
+      "path": "aggregate_interchange.tsv",
+      "media_type": "text/tab-separated-values",
+      "sha256": "67479c5de1a035242d40cb03ed82fef7be8f053b0aebc37ca6090f7afbf0a2a6",
+      "bytes": 2226
+    }
+  ],
+  "completeness": {
+    "source_demo_rows": 5,
+    "current_case_reports": 4,
+    "eligible_reports": 3,
+    "drug_event_pairs": 5,
+    "fields": [
+      {
+        "field": "age",
+        "population": "eligible_reports",
+        "denominator_records": 3,
+        "missing_records": 0,
+        "missing_percent": 0
+      },
+      {
+        "field": "sex",
+        "population": "eligible_reports",
+        "denominator_records": 3,
+        "missing_records": 0,
+        "missing_percent": 0
+      },
+      {
+        "field": "occr_country",
+        "population": "eligible_reports",
+        "denominator_records": 3,
+        "missing_records": 0,
+        "missing_percent": 0
+      },
+      {
+        "field": "serious",
+        "population": "eligible_reports",
+        "denominator_records": 3,
+        "missing_records": 0,
+        "missing_percent": 0
+      }
+    ]
+  },
+  "limitations": [
+    "Synthetic fixture; it cannot validate scientific performance or external validity."
+  ]
+}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"sort"
@@ -20,10 +21,48 @@ const (
 	DefaultTimeout     = 10 * time.Second
 	AnalysisTimeout    = 25 * time.Second
 	MaxReactionWorkers = 5
+	// Count endpoints are expected to return small JSON objects. Bounding reads
+	// protects the exploratory service from a malformed or compromised upstream;
+	// it does not truncate a valid analysis silently because oversize fails whole.
+	maxOpenFDAResponseBytes = 1 << 20
 	// MaxReactionsPerAnalysis bounds both the visible result set and the number
 	// of reaction-background requests made by one cache-miss scan.
 	MaxReactionsPerAnalysis = 25
 )
+
+func decodeOpenFDAResponse(body io.Reader, destination any) error {
+	payload, err := io.ReadAll(io.LimitReader(body, maxOpenFDAResponseBytes+1))
+	if err != nil {
+		return err
+	}
+	if len(payload) > maxOpenFDAResponseBytes {
+		return fmt.Errorf("openFDA response exceeds %d bytes", maxOpenFDAResponseBytes)
+	}
+	return json.Unmarshal(payload, destination)
+}
+
+func screeningOutcome(outcome stats.ScreeningOutcome) string {
+	switch outcome {
+	case stats.ScreeningMeetsProfile:
+		return "MEETS_EVANS_EDUCATIONAL_PROFILE"
+	case stats.ScreeningIntermediateReview:
+		return "INTERMEDIATE_REVIEW"
+	default:
+		return "BELOW_PROFILE"
+	}
+}
+
+// availableFisherP keeps an unavailable exact test out of the JSON contract.
+// A numeric sentinel such as 1 is a valid p-value and can therefore be
+// misread as a computed result even when the accompanying availability flag is
+// false. The exploratory v1 path does not run Fisher, so absence is explicit.
+func availableFisherP(result stats.DisproportionalityResult) *float64 {
+	if !result.FisherExactOK {
+		return nil
+	}
+	p := result.FisherExactP
+	return &p
+}
 
 // Client interacts with the openFDA Drug Adverse Event API.
 type Client struct {
@@ -105,7 +144,7 @@ func (c *Client) GetUniverseTotal(ctx context.Context) (int64, error) {
 	}
 
 	var data TotalResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := decodeOpenFDAResponse(resp.Body, &data); err != nil {
 		return 0, fmt.Errorf("could not decode openFDA universe response: %w", err)
 	}
 
@@ -140,7 +179,7 @@ func (c *Client) GetDrugTotalReports(ctx context.Context, drugName string) (int6
 	}
 
 	var data TotalResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := decodeOpenFDAResponse(resp.Body, &data); err != nil {
 		return 0, fmt.Errorf("could not decode openFDA drug-total response: %w", err)
 	}
 
@@ -175,7 +214,7 @@ func (c *Client) GetTopReactionsForDrug(ctx context.Context, drugName string, li
 	}
 
 	var data CountResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := decodeOpenFDAResponse(resp.Body, &data); err != nil {
 		return nil, fmt.Errorf("could not decode openFDA reaction-count response: %w", err)
 	}
 
@@ -206,7 +245,7 @@ func (c *Client) GetReactionBackgroundTotal(ctx context.Context, reactionPT stri
 	}
 
 	var data TotalResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := decodeOpenFDAResponse(resp.Body, &data); err != nil {
 		return 0, fmt.Errorf("could not decode openFDA background response: %w", err)
 	}
 
@@ -261,11 +300,15 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 
 	if drugTotal == 0 || len(topReactions) == 0 {
 		return &DrugEventAnalysis{
+			Mode:              "live_exploration",
+			Citable:           false,
 			QueryDrug:         drugName,
 			NormalizedDrug:    cleanDrug,
 			DrugTotalReports:  drugTotal,
 			DatabaseUniverseN: universeN,
 			Signals:           []SignalSummary{},
+			SelectionScope:    "most_frequently_reported_meddra_pt",
+			SelectionLimit:    MaxReactionsPerAnalysis,
 			Timestamp:         time.Now().UTC().Format(time.RFC3339),
 			Disclaimer:        "Spontaneous adverse event reports do not prove causal association. Notoriety bias and lack of prescription denominators must be taken into account.",
 		}, nil
@@ -310,12 +353,12 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 
 	// 3. Assemble contingency tables and compute statistical metrics
 	var signalSummaries []SignalSummary
-	activeCount := 0
+	sdrReviewCount := 0
 
 	for res := range resultsChan {
 		// The background count is a marginal total in the 2x2 table. Replacing a
 		// failed lookup with a creates c=0 and can inflate PRR/ROR into a false
-		// active signal, so an incomplete scan is rejected as a whole.
+		// disproportionate-review flag, so an incomplete scan is rejected as a whole.
 		if res.err != nil || res.total == 0 {
 			return nil, fmt.Errorf("failed to establish background count for reaction %q", res.term)
 		}
@@ -326,26 +369,29 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 		}
 		statRes := table.Calculate(cleanDrug, res.term)
 
-		if statRes.Signal == stats.SignalActive {
-			activeCount++
+		if statRes.ScreeningOutcome == stats.ScreeningMeetsProfile {
+			sdrReviewCount++
 		}
 
 		summary := SignalSummary{
-			Reaction:       res.term,
-			CountA:         int64(table.A),
-			DrugTotal:      int64(table.A + table.B),
-			ReactionTotal:  int64(table.A + table.C),
-			PRR:            statRes.PRR,
-			PRRLower95:     statRes.PRRLower95,
-			PRRUpper95:     statRes.PRRUpper95,
-			ROR:            statRes.ROR,
-			RORLower95:     statRes.RORLower95,
-			RORUpper95:     statRes.RORUpper95,
-			ChiSquare:      statRes.ChiSquare,
-			PValueApprox:   statRes.PValueApprox,
-			SignalLevel:    string(statRes.Signal),
-			SignalScore:    statRes.SignalScore,
-			Interpretation: statRes.Recommendation,
+			Reaction:                res.term,
+			CountA:                  int64(table.A),
+			DrugTotal:               int64(table.A + table.B),
+			ReactionTotal:           int64(table.A + table.C),
+			PRR:                     statRes.PRR,
+			PRRLower95:              statRes.PRRLower95,
+			PRRUpper95:              statRes.PRRUpper95,
+			ROR:                     statRes.ROR,
+			RORLower95:              statRes.RORLower95,
+			RORUpper95:              statRes.RORUpper95,
+			ChiSquare:               statRes.ChiSquare,
+			PValueApprox:            statRes.PValueApprox,
+			FisherExactP:            availableFisherP(statRes),
+			FisherExactOK:           statRes.FisherExactOK,
+			ScreeningOutcome:        screeningOutcome(statRes.ScreeningOutcome),
+			ExploratoryRankingScore: statRes.ExploratoryRankingScore,
+			Interpretation:          statRes.Recommendation,
+			MethodMetadata:          statRes.MethodMetadata,
 		}
 
 		signalSummaries = append(signalSummaries, summary)
@@ -359,15 +405,19 @@ func (c *Client) AnalyzeDrug(ctx context.Context, drugName string) (*DrugEventAn
 	})
 
 	analysis := &DrugEventAnalysis{
-		QueryDrug:          drugName,
-		NormalizedDrug:     cleanDrug,
-		DrugTotalReports:   drugTotal,
-		DatabaseUniverseN:  universeN,
-		ActiveSignalsCount: activeCount,
-		TotalReactions:     len(signalSummaries),
-		Signals:            signalSummaries,
-		Timestamp:          time.Now().UTC().Format(time.RFC3339),
-		Disclaimer:         "Exploratory FAERS screening only: report-level co-occurrence does not establish a drug-event causal link, clinical incidence, or a validated safety conclusion.",
+		Mode:              "live_exploration",
+		Citable:           false,
+		QueryDrug:         drugName,
+		NormalizedDrug:    cleanDrug,
+		DrugTotalReports:  drugTotal,
+		DatabaseUniverseN: universeN,
+		SDRReviewCount:    sdrReviewCount,
+		TotalReactions:    len(signalSummaries),
+		Signals:           signalSummaries,
+		SelectionScope:    "most_frequently_reported_meddra_pt",
+		SelectionLimit:    MaxReactionsPerAnalysis,
+		Timestamp:         time.Now().UTC().Format(time.RFC3339),
+		Disclaimer:        "Exploratory FAERS screening only: report-level co-occurrence does not establish a drug-event causal link, clinical incidence, or a validated safety conclusion.",
 	}
 
 	return analysis, nil

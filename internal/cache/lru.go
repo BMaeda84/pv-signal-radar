@@ -17,11 +17,11 @@ type cacheItem struct {
 
 // LRUCache is a concurrent, bounded LRU cache with TTL.
 type LRUCache struct {
-	mu         sync.RWMutex
-	capacity   int
-	ttl        time.Duration
-	items      map[string]*cacheItem
-	evictList  *list.List
+	mu        sync.RWMutex
+	capacity  int
+	ttl       time.Duration
+	items     map[string]*cacheItem
+	evictList *list.List
 }
 
 // New creates an LRUCache with given capacity and TTL.
