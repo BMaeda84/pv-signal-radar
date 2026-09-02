@@ -20,22 +20,29 @@
         </div>
       </div>
 
-      <!-- Main Navigation Tabs -->
-      <nav class="nav-tabs">
-        <button type="button" class="tab-btn active" data-tab="radarTabView">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg>
-          Radar Comparativo
+      <!-- Main Navigation Tabs & Controls -->
+      <div class="header-controls">
+        <nav class="nav-tabs">
+          <button type="button" class="tab-btn active" data-tab="radarTabView">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg>
+            Radar Comparativo
+          </button>
+          <button type="button" class="tab-btn" data-tab="methodologyTabView">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            Metodologia &amp; Fontes
+          </button>
+          <button type="button" class="tab-btn" data-tab="feedbackTabView">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Feedback &amp; Comunidade
+            <span id="headerFeedbackBadge" class="feedback-badge">0</span>
+          </button>
+        </nav>
+
+        <button type="button" id="themeToggleBtn" class="btn-theme-toggle" title="Alternar tema visual">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span id="themeToggleText">Modo Escuro</span>
         </button>
-        <button type="button" class="tab-btn" data-tab="methodologyTabView">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-          Metodologia &amp; Fontes
-        </button>
-        <button type="button" class="tab-btn" data-tab="feedbackTabView">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-          Feedback &amp; Comunidade
-          <span id="headerFeedbackBadge" class="feedback-badge">0</span>
-        </button>
-      </nav>
+      </div>
     </div>
   </header>
 
@@ -52,7 +59,7 @@
         <div class="search-box-wrapper">
           <form id="searchForm" class="search-form" style="position: relative;">
             <div style="flex: 1; position: relative;">
-              <input type="text" id="drugInput" class="search-input" placeholder="Buscar princípio ativo ou marca (ex: Semaglutida, Dipirona, Metformina, Pembrolizumabe)..." autocomplete="off" required>
+              <input type="text" id="drugInput" class="search-input" placeholder="Buscar por Princípio Ativo (DCB), Nome Comercial ou Código ATC..." autocomplete="off" required>
               <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
             </div>
             <button type="submit" class="btn-primary">
@@ -115,7 +122,7 @@
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-top">
-              <div class="stat-label">Base de Dados Ativa</div>
+              <div class="stat-label">Base Ativa</div>
             </div>
             <div id="statJurisdictionTitle" class="stat-value" style="font-size: 1.25rem; color: var(--accent-cyan);">-</div>
             <div class="stat-subtext">Jurisdição regulatória</div>
@@ -152,19 +159,26 @@
           </div>
         </div>
 
-        <!-- Main Dashboard Layout: Volcano Plot & Table -->
-        <div class="dashboard-layout">
+        <!-- Main Dashboard Split Layout: Chart (Left) + 2x2 Contingency Inspector (Right) -->
+        <div class="analytics-split-grid">
           
-          <!-- Volcano Plot -->
+          <!-- Statistical Chart Card (Volcano / Forest Plot) -->
           <div class="card">
             <div class="card-header">
-              <span class="card-title">Volcano Plot de Desproporcionalidade</span>
+              <span class="card-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                Distribuição Estatística
+              </span>
+              <div class="chart-view-tabs">
+                <button type="button" class="chart-tab-btn active" data-chart="volcano">Volcano Plot</button>
+                <button type="button" class="chart-tab-btn" data-chart="forest">Forest Plot (IC 95%)</button>
+              </div>
             </div>
             <div class="card-body">
               <div class="plot-container">
                 <canvas id="volcanoCanvas"></canvas>
               </div>
-              <div class="plot-legend">
+              <div id="plotLegend" class="plot-legend">
                 <div class="legend-item">
                   <div class="legend-dot" style="background: var(--signal-active);"></div>
                   <span>Sinal Ativo</span>
@@ -181,31 +195,91 @@
             </div>
           </div>
 
-          <!-- Table -->
-          <div class="card">
+          <!-- 2x2 Contingency Table Inspector Card -->
+          <div id="inspectorCard" class="card">
             <div class="card-header">
-              <span class="card-title">Pares Fármaco-Reação &amp; Estatísticas</span>
+              <span class="card-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="12" y1="3" x2="12" y2="21"></line></svg>
+                Inspetor de Matriz 2 &times; 2
+              </span>
+              <span id="inspectorReactionBadge" class="atc-pill" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Selecione um par</span>
             </div>
-            <div class="table-responsive">
-              <table>
+            <div class="card-body">
+              <p style="font-size: 0.775rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                Decomposição celular da hipótese de independência para: <strong id="inspectorReactionTitle" style="color: var(--text-primary);">-</strong>
+              </p>
+
+              <table class="inspector-table">
                 <thead>
                   <tr>
-                    <th>Reação Adversa (MedDRA PT)</th>
-                    <th>Relatos (a)</th>
-                    <th>PRR [95% CI]</th>
-                    <th>ROR [95% CI]</th>
-                    <th>&chi;&sup2; (Yates)</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Reportar</th>
+                    <th></th>
+                    <th>Evento Alvo ($E$)</th>
+                    <th>Outros Eventos ($\neg E$)</th>
+                    <th>Total Fármaco</th>
                   </tr>
                 </thead>
-                <tbody id="signalsTableBody">
-                  <!-- Dynamically populated -->
+                <tbody>
+                  <tr>
+                    <td style="font-weight: 700; font-size: 0.725rem;">Fármaco Alvo ($D$)</td>
+                    <td id="cellA" class="cell-active">-</td>
+                    <td id="cellB" class="cell-num">-</td>
+                    <td id="cellMarginDrug" style="font-weight: 700; font-family: var(--font-mono);">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 700; font-size: 0.725rem;">Outros Fármacos ($\neg D$)</td>
+                    <td id="cellC" class="cell-num">-</td>
+                    <td id="cellD" class="cell-num">-</td>
+                    <td id="cellMarginOtherDrug" style="font-family: var(--font-mono); color: var(--text-muted);">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 700; font-size: 0.725rem;">Total Evento</td>
+                    <td id="cellMarginEvent" style="font-weight: 700; font-family: var(--font-mono);">-</td>
+                    <td id="cellMarginOtherEvent" style="font-family: var(--font-mono); color: var(--text-muted);">-</td>
+                    <td id="cellTotalUniverse" style="font-weight: 700; color: var(--accent-cyan); font-family: var(--font-mono);">-</td>
+                  </tr>
                 </tbody>
               </table>
+
+              <div class="inspector-meta">
+                <div class="inspector-meta-item">
+                  <strong>Valor Esperado ($E$):</strong>
+                  <span id="inspectorExpectedVal">-</span>
+                </div>
+                <div class="inspector-meta-item">
+                  <strong>Razão Obs / Esp ($a / E$):</strong>
+                  <span id="inspectorObsExpRatio">-</span>
+                </div>
+              </div>
             </div>
           </div>
 
+        </div>
+
+        <!-- Clinical Data Table Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <div class="card-header">
+            <span class="card-title">Pares Fármaco-Reação &amp; Indicadores Epidemiológicos</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Clique em uma linha para inspecionar a matriz 2 &times; 2</span>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reação Adversa (MedDRA PT)</th>
+                  <th>Observado ($a$)</th>
+                  <th>Esperado ($E$)</th>
+                  <th>PRR [95% CI]</th>
+                  <th>ROR [95% CI]</th>
+                  <th>&chi;&sup2; (Yates)</th>
+                  <th>Status de Evans</th>
+                  <th style="text-align: right;">Reportar</th>
+                </tr>
+              </thead>
+              <tbody id="signalsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
