@@ -1006,6 +1006,47 @@ textarea.form-control {
   margin-bottom: 2.5rem;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.glossary-summary {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  background: var(--bg-card);
+  list-style: none;
+  transition: background 0.15s ease;
+}
+
+.glossary-summary::-webkit-details-marker {
+  display: none;
+}
+
+.glossary-summary:hover {
+  background: var(--bg-card-hover);
+}
+
+.glossary-toggle-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.775rem;
+  color: var(--accent-cyan);
+}
+
+.accordion-arrow {
+  transition: transform 0.2s ease;
+}
+
+details[open] .accordion-arrow {
+  transform: rotate(180deg);
+}
+
+details[open] .glossary-summary {
+  border-bottom: 1px solid var(--border-color);
 }
 
 .glossary-grid {

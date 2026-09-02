@@ -255,15 +255,48 @@
 
         </div>
 
-        <!-- Quick Educational Glossary Card -->
-        <div class="glossary-card">
+        <!-- Clinical Data Table Card -->
+        <div class="card" style="margin-bottom: 1.5rem;">
           <div class="card-header">
             <span class="card-title">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              Glossário Rápido: O Que Significa Cada Sigla e Como Interpretar
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              Pares Fármaco-Reação &amp; Indicadores Epidemiológicos
             </span>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Guia para não-especialistas e pesquisadores</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Clique em uma linha para inspecionar a matriz 2 &times; 2</span>
           </div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Reação Adversa (MedDRA PT)</th>
+                  <th>Observado (a)</th>
+                  <th>Esperado (E)</th>
+                  <th>PRR [95% CI]</th>
+                  <th>ROR [95% CI]</th>
+                  <th>&chi;&sup2; (Yates)</th>
+                  <th>Status de Evans</th>
+                  <th style="text-align: right;">Reportar</th>
+                </tr>
+              </thead>
+              <tbody id="signalsTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Collapsible Educational Glossary Accordion -->
+        <details class="glossary-card" style="margin-bottom: 2.5rem;">
+          <summary class="card-header glossary-summary">
+            <span class="card-title" style="cursor: pointer;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              Glossário Rápido de Siglas e Métricas Estatísticas
+            </span>
+            <span class="glossary-toggle-hint">
+              <span>Ver definições e como interpretar</span>
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </summary>
           <div class="card-body">
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
               Em farmacovigilância, as métricas de desproporcionalidade não medem causalidade direta nem risco absoluto, mas sim se um sintoma é <strong>notificado com frequência desproporcionalmente maior</strong> para determinado medicamento quando comparado a todo o restante da base de dados.
@@ -281,7 +314,7 @@
                   <strong>Razão de Proporcionalidade de Relatos.</strong> Compara a proporção em que esta reação ocorre para o remédio pesquisado contra a proporção da mesma reação para todos os outros remédios.
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Um $\text{PRR} = 1.0$ é neutro (esperado). Um $\text{PRR} \ge 2.0$ significa que o sintoma foi relatado <strong>duas vezes mais</strong> para este remédio do que a média da base, servindo como sinal de alerta para triagem.
+                  <strong>Como Interpretar:</strong> Um valor de <strong>PRR = 1,0</strong> é neutro (esperado). Um valor de <strong>PRR ≥ 2,0</strong> significa que o sintoma foi relatado <strong>duas vezes mais</strong> para este remédio do que a média da base, servindo como sinal de alerta para triagem.
                 </div>
               </div>
 
@@ -292,10 +325,10 @@
                   <span class="glossary-term-badge">Reporting Odds Ratio</span>
                 </div>
                 <div class="glossary-definition">
-                  <strong>Razão de Chances de Relato.</strong> Calcula a chance (odds) de um relato deste medicamento citar este sintoma versus a chance de citar qualquer outro sintoma da base (matriz $2 \times 2$).
+                  <strong>Razão de Chances de Relato.</strong> Calcula a chance (odds) de um relato deste medicamento citar este sintoma versus a chance de citar qualquer outro sintoma da base (matriz 2 &times; 2).
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Funciona como o Odds Ratio epidemiológico. Se o valor e o limite inferior do IC 95% forem maiores que <strong>1.0</strong>, há uma associação estatística positiva consistente.
+                  <strong>Como Interpretar:</strong> Funciona como o Odds Ratio epidemiológico. Se o valor e o limite inferior do IC 95% forem maiores que <strong>1,0</strong>, há uma associação estatística positiva consistente.
                 </div>
               </div>
 
@@ -309,7 +342,7 @@
                   <strong>Margem de Precisão Amostral.</strong> Faixa numérica calculada com 95% de certeza estatística onde se encontra a verdadeira razão de reporte.
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Intervalos curtos (ex: $[2.10 - 2.45]$) indicam muitos dados e alta precisão. Se o limite inferior for $> 1.0$, o resultado é estatisticamente robusto e improvável de ser mero ruído amostral.
+                  <strong>Como Interpretar:</strong> Intervalos curtos (ex.: [2,10 - 2,45]) indicam muitos dados e alta precisão. Se o limite inferior for <strong>&gt; 1,0</strong>, o resultado é estatisticamente robusto e improvável de ser mero ruído amostral.
                 </div>
               </div>
 
@@ -323,7 +356,7 @@
                   <strong>Teste de Independência Estatística.</strong> Medida matemática que avalia se a relação observada entre o medicamento e a reação pode ter acontecido por puro acaso.
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Quanto maior o $\chi^2$, mais improvável é a coincidência. No padrão regulatório internacional, um $\chi^2 \ge 4.0$ equivale a uma probabilidade de erro ($p$-valor) menor que <strong>5% ($p < 0.05$)</strong>.
+                  <strong>Como Interpretar:</strong> Quanto maior o &chi;&sup2;, mais improvável é a coincidência. No padrão regulatório internacional, um <strong>&chi;&sup2; ≥ 4,0</strong> equivale a uma probabilidade de erro (p-valor) menor que <strong>5% (p &lt; 0,05)</strong>.
                 </div>
               </div>
 
@@ -334,10 +367,10 @@
                   <span class="glossary-term-badge">Contagem Real vs. Teórica</span>
                 </div>
                 <div class="glossary-definition">
-                  <strong>$a$</strong> é o número real de relatos recebidos no sistema. <strong>$E$</strong> é a quantidade teórica de casos que esperaríamos receber se o remédio não tivesse nenhuma relação com a reação.
+                  <strong>a</strong> é o número real de relatos recebidos no sistema. <strong>E</strong> é a quantidade teórica de casos que esperaríamos receber se o remédio não tivesse nenhuma relação com a reação.
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Se $a > E$ (ex.: $a = 40$ casos reais quando se esperavam apenas $E = 10$), há um excesso de relatos que justifica o cálculo da desproporcionalidade.
+                  <strong>Como Interpretar:</strong> Se <strong>a &gt; E</strong> (ex.: a = 40 casos reais quando se esperavam apenas E = 10), há um excesso de relatos que justifica o cálculo da desproporcionalidade.
                 </div>
               </div>
 
@@ -351,7 +384,7 @@
                   <strong>Critério Triplo de Triagem de Segurança.</strong> Algoritmo clássico estabelecido por Evans et al. (2001) e adotado pela Agência Europeia de Medicamentos (EMA GVP IX).
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> É rotulado como <strong>Forte / Ativo</strong> quando atende simultaneamente a: $a \ge 3$ relatos, $\text{PRR} \ge 2.0$ e $\chi^2 \ge 4.0$. Não significa culpa biológica comprovada, mas sim prioridade de investigação.
+                  <strong>Como Interpretar:</strong> É rotulado como <strong>Forte / Ativo</strong> quando atende simultaneamente a: <strong>a ≥ 3</strong> relatos, <strong>PRR ≥ 2,0</strong> e <strong>&chi;&sup2; ≥ 4,0</strong>. Não significa culpa biológica comprovada, mas sim prioridade de investigação.
                 </div>
               </div>
 
@@ -362,7 +395,7 @@
                   <span class="glossary-term-badge">Preferred Term</span>
                 </div>
                 <div class="glossary-definition">
-                  <strong>Terminologia Médica Padronizada Internacional.</strong> Dicionário controlado globalmente pelo ICH para que um sintoma (ex: *Náusea* ou *Pancreatite aguda*) tenha exatamente a mesma grafia no Brasil, EUA ou Europa.
+                  <strong>Terminologia Médica Padronizada Internacional.</strong> Dicionário controlado globalmente pelo ICH para que um sintoma (ex.: <em>Náusea</em> ou <em>Pancreatite aguda</em>) tenha exatamente a mesma grafia no Brasil, EUA ou Europa.
                 </div>
                 <div class="glossary-interpretation">
                   <strong>Como Interpretar:</strong> Garante que relatos de diferentes hospitais e países sejam agrupados sob o mesmo conceito clínico exato sem ambiguidades.
@@ -376,16 +409,16 @@
                   <span class="glossary-term-badge">Classificação Ontológica</span>
                 </div>
                 <div class="glossary-definition">
-                  <strong>ATC (OMS):</strong> Código alfanumérico que cataloga o remédio pelo órgão em que atua (ex: `A10` para trato digestivo/diabetes). <strong>DCB:</strong> Denominação Comum Brasileira oficial da Farmacopeia.
+                  <strong>ATC (OMS):</strong> Código alfanumérico que cataloga o remédio pelo órgão em que atua (ex.: <code>A10</code> para trato digestivo/diabetes). <strong>DCB:</strong> Denominação Comum Brasileira oficial da Farmacopeia.
                 </div>
                 <div class="glossary-interpretation">
-                  <strong>Como Interpretar:</strong> Permite comparar medicamentos pelo princípio ativo real, independentemente do nome comercial de fábrica (*Ozempic*, *Glifage*, *Novalgina*).
+                  <strong>Como Interpretar:</strong> Permite comparar medicamentos pelo princípio ativo real, independentemente do nome comercial de fábrica (<em>Ozempic</em>, <em>Glifage</em>, <em>Novalgina</em>).
                 </div>
               </div>
 
             </div>
           </div>
-        </div>
+        </details>
 
       </div>
     </section>
