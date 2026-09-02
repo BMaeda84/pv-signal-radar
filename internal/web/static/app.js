@@ -61,14 +61,174 @@ function initTabNavigation() {
   }
 }
 
-// 2. Search & Analysis Handling
+// 2. Comprehensive Pharmaceutical Catalog for Instant Autocomplete
+const PHARMA_CATALOG = [
+  { canonical: 'Semaglutida', synonyms: ['Semaglutide', 'Ozempic', 'Wegovy', 'Rybelsus'], atc: 'A10BJ06', class: 'Análogo de GLP-1 / Antidiabético' },
+  { canonical: 'Dipirona', synonyms: ['Metamizol', 'Novalgina', 'Anador', 'Dipyrone', 'Metamizole', 'Neosaldina'], atc: 'N02BB02', class: 'Analgésico / Antitérmico Pirazolônico' },
+  { canonical: 'Metformina', synonyms: ['Metformin', 'Glifage', 'Glucophage', 'Dimefor'], atc: 'A10BA02', class: 'Biguanida / Antidiabético' },
+  { canonical: 'Rosuvastatina', synonyms: ['Rosuvastatin', 'Crestor', 'Vivacor'], atc: 'C10AA07', class: 'Estatina / Hipolipemiante' },
+  { canonical: 'Pembrolizumabe', synonyms: ['Pembrolizumab', 'Keytruda'], atc: 'L01FF02', class: 'Anticorpo Monoclonal Anti-PD-1' },
+  { canonical: 'Adalimumabe', synonyms: ['Adalimumab', 'Humira', 'Hyrimoz'], atc: 'L04AB04', class: 'Inibidor de TNF-alfa / Imunossupressor' },
+  { canonical: 'Rivaroxabana', synonyms: ['Rivaroxaban', 'Xarelto'], atc: 'B01AF01', class: 'Inibidor Direto do Fator Xa' },
+  { canonical: 'Apixabana', synonyms: ['Apixaban', 'Eliquis'], atc: 'B01AF02', class: 'Inibidor Direto do Fator Xa' },
+  { canonical: 'Empagliflozina', synonyms: ['Empagliflozin', 'Jardiance'], atc: 'A10BK03', class: 'Inibidor de SGLT2 / Antidiabético' },
+  { canonical: 'Dapagliflozina', synonyms: ['Dapagliflozin', 'Forxiga'], atc: 'A10BK01', class: 'Inibidor de SGLT2 / Antidiabético' },
+  { canonical: 'Tirzepatida', synonyms: ['Tirzepatide', 'Mounjaro', 'Zepbound'], atc: 'A10BX16', class: 'Agonista Duplo GIP/GLP-1' },
+  { canonical: 'Dulaglutida', synonyms: ['Dulaglutide', 'Trulicity'], atc: 'A10BJ05', class: 'Análogo de GLP-1' },
+  { canonical: 'Liraglutida', synonyms: ['Liraglutide', 'Victoza', 'Saxenda'], atc: 'A10BJ02', class: 'Análogo de GLP-1' },
+  { canonical: 'Omeprazol', synonyms: ['Omeprazole', 'Losec', 'Peprazol'], atc: 'A02BC01', class: 'Inibidor da Bomba de Prótons' },
+  { canonical: 'Esomeprazol', synonyms: ['Esomeprazole', 'Nexium'], atc: 'A02BC05', class: 'Inibidor da Bomba de Prótons' },
+  { canonical: 'Losartana', synonyms: ['Losartan', 'Cozaar', 'Aradois'], atc: 'C09CA01', class: 'Antagonista do Receptor AT1' },
+  { canonical: 'Amoxicilina', synonyms: ['Amoxicillin', 'Amoxil', 'Clavulin'], atc: 'J01CA04', class: 'Antibiótico Betalactâmico' },
+  { canonical: 'Paracetamol', synonyms: ['Acetaminophen', 'Tylenol', 'Dofalgan'], atc: 'N02BE01', class: 'Analgésico e Antitérmico' },
+  { canonical: 'Ibuprofeno', synonyms: ['Ibuprofen', 'Advil', 'Alivium', 'Motrin'], atc: 'M01AE01', class: 'Anti-inflamatório Não Esteroidal (AINE)' },
+  { canonical: 'Atorvastatina', synonyms: ['Atorvastatin', 'Lipitor', 'Citalor'], atc: 'C10AA05', class: 'Estatina / Hipolipemiante' },
+  { canonical: 'Sinvastatina', synonyms: ['Simvastatin', 'Zocor'], atc: 'C10AA01', class: 'Estatina / Hipolipemiante' },
+  { canonical: 'Levotiroxina', synonyms: ['Levothyroxine', 'Puran T4', 'Synthroid', 'Euthyrox'], atc: 'H03AA01', class: 'Hormônio Tireoidiano' },
+  { canonical: 'Escitalopram', synonyms: ['Lexapro', 'Exodus', 'Reconter'], atc: 'N06AB10', class: 'ISRS / Antidepressivo' },
+  { canonical: 'Sertralina', synonyms: ['Sertraline', 'Zoloft', 'Assert', 'Tolrest'], atc: 'N06AB06', class: 'ISRS / Antidepressivo' },
+  { canonical: 'Fluoxetina', synonyms: ['Fluoxetine', 'Prozac', 'Daforin'], atc: 'N06AB03', class: 'ISRS / Antidepressivo' },
+  { canonical: 'Clonazepam', synonyms: ['Rivotril', 'Clonavitae'], atc: 'N03AE01', class: 'Benzodiazepínico' },
+  { canonical: 'Diazepam', synonyms: ['Valium', 'Compaz'], atc: 'N05BA01', class: 'Benzodiazepínico' },
+  { canonical: 'Alprazolam', synonyms: ['Frontal', 'Tranquinal', 'Apraz'], atc: 'N05BA12', class: 'Benzodiazepínico' },
+  { canonical: 'Pregabalina', synonyms: ['Pregabalin', 'Lyrica', 'Prebictal'], atc: 'N02BF02', class: 'Gabapentinoide' },
+  { canonical: 'Gabapentina', synonyms: ['Gabapentin', 'Neurontin'], atc: 'N02BF01', class: 'Gabapentinoide' },
+  { canonical: 'Enoxaparina', synonyms: ['Enoxaparin', 'Clexane', 'Versa'], atc: 'B01AB05', class: 'Heparina de Baixo Peso Molecular' },
+  { canonical: 'Varfarina', synonyms: ['Warfarin', 'Marevan', 'Coumadin'], atc: 'B01AA03', class: 'Anticoagulante Cumarínico' },
+  { canonical: 'Metotrexato', synonyms: ['Methotrexate', 'Miantrex'], atc: 'L01BA01', class: 'Antimetabólito' },
+  { canonical: 'Rituximabe', synonyms: ['Rituximab', 'MabThera'], atc: 'L01FA01', class: 'Anticorpo Monoclonal Anti-CD20' },
+  { canonical: 'Infliximabe', synonyms: ['Infliximab', 'Remicade'], atc: 'L04AB02', class: 'Inibidor de TNF-alfa' },
+  { canonical: 'Trastuzumabe', synonyms: ['Trastuzumab', 'Herceptin'], atc: 'L01FD01', class: 'Anticorpo Monoclonal Anti-HER2' },
+  { canonical: 'Nivolumabe', synonyms: ['Nivolumab', 'Opdivo'], atc: 'L01FF01', class: 'Anticorpo Monoclonal Anti-PD-1' }
+];
+
+// 3. Search & Autocomplete Handling
 function initSearch() {
   const searchForm = document.getElementById('searchForm');
   const drugInput = document.getElementById('drugInput');
+  const dropdown = document.getElementById('autocompleteDropdown');
   const presetTags = document.querySelectorAll('.tag-preset');
 
+  let selectedIndex = -1;
+  let currentMatches = [];
+
+  function normalize(str) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  function highlightMatch(text, query) {
+    const normText = normalize(text);
+    const normQuery = normalize(query);
+    const idx = normText.indexOf(normQuery);
+    if (idx === -1) return text;
+    return text.substring(0, idx) + '<mark>' + text.substring(idx, idx + query.length) + '</mark>' + text.substring(idx + query.length);
+  }
+
+  function renderDropdown(matches, query) {
+    if (!matches.length) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    currentMatches = matches;
+    selectedIndex = -1;
+
+    dropdown.innerHTML = matches.map((item, i) => {
+      const matchBrand = item.synonyms.find(s => normalize(s).includes(normalize(query)));
+      const brandDisplay = matchBrand ? `Marca/Sinônimo: ${highlightMatch(matchBrand, query)}` : item.synonyms.slice(0, 3).join(', ');
+
+      return `
+        <div class="autocomplete-item" data-index="${i}" data-canonical="${item.canonical}">
+          <div class="autocomplete-item-main">
+            <span class="substance-name">${highlightMatch(item.canonical, query)}</span>
+            <span class="substance-brand">${brandDisplay} &bull; <span style="color: var(--text-secondary);">${item.class}</span></span>
+          </div>
+          <div class="substance-tags">
+            <span class="substance-atc">${item.atc}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    dropdown.style.display = 'block';
+
+    // Click on item
+    dropdown.querySelectorAll('.autocomplete-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const canonical = el.dataset.canonical;
+        drugInput.value = canonical;
+        dropdown.style.display = 'none';
+        performAnalysis(canonical);
+      });
+    });
+  }
+
+  // Input event with instant filtering
+  drugInput.addEventListener('input', () => {
+    const q = drugInput.value.trim();
+    if (q.length < 1) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    const normQ = normalize(q);
+    const matches = PHARMA_CATALOG.filter(item => {
+      if (normalize(item.canonical).includes(normQ)) return true;
+      if (normalize(item.atc).includes(normQ)) return true;
+      return item.synonyms.some(s => normalize(s).includes(normQ));
+    }).slice(0, 7);
+
+    renderDropdown(matches, q);
+  });
+
+  // Keyboard navigation
+  drugInput.addEventListener('keydown', (e) => {
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (!items.length || dropdown.style.display === 'none') return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex + 1) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      updateActiveItem(items);
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < currentMatches.length) {
+        e.preventDefault();
+        const selected = currentMatches[selectedIndex];
+        drugInput.value = selected.canonical;
+        dropdown.style.display = 'none';
+        performAnalysis(selected.canonical);
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  function updateActiveItem(items) {
+    items.forEach((item, i) => {
+      if (i === selectedIndex) {
+        item.classList.add('active');
+        item.scrollIntoView({ block: 'nearest' });
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!searchForm.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // Search submission
   searchForm.addEventListener('submit', (e) => {
     e.preventDefault();
+    dropdown.style.display = 'none';
     const query = drugInput.value.trim();
     if (query) {
       performAnalysis(query);
@@ -79,6 +239,7 @@ function initSearch() {
     tag.addEventListener('click', () => {
       const drug = tag.dataset.drug;
       drugInput.value = drug;
+      dropdown.style.display = 'none';
       performAnalysis(drug);
     });
   });

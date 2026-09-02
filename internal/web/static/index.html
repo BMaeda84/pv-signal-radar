@@ -50,8 +50,11 @@
         <p>Análise de desproporcionalidade estatística (PRR, ROR, &chi;&sup2; de Yates e IC 95%) harmonizada entre o banco global da FDA (FAERS) e a base nacional da ANVISA (VigiMed).</p>
         
         <div class="search-box-wrapper">
-          <form id="searchForm" class="search-form">
-            <input type="text" id="drugInput" class="search-input" placeholder="Buscar princípio ativo ou marca (ex: Semaglutida, Dipirona, Metformina, Pembrolizumabe)..." autocomplete="off" required>
+          <form id="searchForm" class="search-form" style="position: relative;">
+            <div style="flex: 1; position: relative;">
+              <input type="text" id="drugInput" class="search-input" placeholder="Buscar princípio ativo ou marca (ex: Semaglutida, Dipirona, Metformina, Pembrolizumabe)..." autocomplete="off" required>
+              <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+            </div>
             <button type="submit" class="btn-primary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               Analisar
