@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/BMaeda84/pv-signal-radar/internal/cache"
+	"github.com/BMaeda84/pv-signal-radar/internal/feedback"
 )
 
 func newTestMux() *http.ServeMux {
@@ -125,5 +127,36 @@ func TestAnalysisStartPacingStaysWithinUpstreamBudget(t *testing.T) {
 	maxStartsPerWindow := int(time.Minute/analysisStartInterval) + 1
 	if requests := maxStartsPerWindow * maxUpstreamRequestsPerScan; requests > maxUpstreamRequestsPerMinute {
 		t.Fatalf("rate gate can issue %d upstream requests per 60-second window; budget is %d", requests, maxUpstreamRequestsPerMinute)
+	}
+}
+
+func TestFeedbackEndpoint_SuccessAndValidation(t *testing.T) {
+	fbService, err := feedback.NewService("test_web_feedbacks.jsonl")
+	if err != nil {
+		t.Fatalf("failed to init feedback service: %v", err)
+	}
+	defer os.Remove("test_web_feedbacks.jsonl")
+
+	server := NewServer(nil, cache.New(5, time.Hour), fbService)
+	mux := http.NewServeMux()
+	server.Routes(mux)
+
+	// Valid POST
+	body := `{"email":"tester@anvisa.gov.br","comments":"Great comparative dashboard!","flagged_statistics":[{"drug":"Semaglutide","reaction":"NAUSEA","jurisdiction":"FDA","metric":"PRR","displayed_value":"3.77","reason":"Matches clinical trial data"}]}`
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/feedback", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	mux.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+
+	var res map[string]interface{}
+	if err := json.NewDecoder(recorder.Body).Decode(&res); err != nil {
+		t.Fatalf("invalid json response: %v", err)
+	}
+	if res["status"] != "success" {
+		t.Errorf("expected success status, got %#v", res)
 	}
 }

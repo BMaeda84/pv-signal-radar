@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/BMaeda84/pv-signal-radar/internal/cache"
+	"github.com/BMaeda84/pv-signal-radar/internal/feedback"
 	"github.com/BMaeda84/pv-signal-radar/internal/openfda"
 	"github.com/BMaeda84/pv-signal-radar/internal/web"
 )
@@ -38,12 +39,23 @@ func main() {
 		}
 	}
 
+	feedbackStorage := os.Getenv("FEEDBACK_STORAGE_FILE")
+	if feedbackStorage == "" {
+		feedbackStorage = "data/feedbacks.jsonl"
+	}
+
 	log.Printf("[pv-signal-radar] starting service on port :%s (cache capacity=%d, ttl=%v)", port, cacheCap, cacheTTL)
 
 	// Initialize components
 	fdaClient := openfda.NewClient(apiKey)
 	lruCache := cache.New(cacheCap, cacheTTL)
-	webServer := web.NewServer(fdaClient, lruCache)
+
+	fbService, err := feedback.NewService(feedbackStorage)
+	if err != nil {
+		log.Fatalf("[pv-signal-radar] failed to initialize feedback service: %v", err)
+	}
+
+	webServer := web.NewServer(fdaClient, lruCache, fbService)
 
 	mux := http.NewServeMux()
 	webServer.Routes(mux)

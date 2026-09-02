@@ -102,7 +102,43 @@ docker build --tag pv-signal-radar:local .
 
 CI runs race-enabled unit tests, static analysis, binary compilation, and a Docker build on every pull request and push to `main`.
 
-On Windows, `go test -race` needs CGO and an available C toolchain. If the local host does not provide one, run `go test ./...` locally and use the Linux CI run as the race-detector check.
+## Dual-Base Harmonization (US FDA FAERS × Brasil ANVISA VigiMed)
+
+Version 2.0 introduces cross-jurisdictional screening comparing global **FDA FAERS** notifications against **ANVISA VigiMed** (Brazil's official pharmacovigilance system based on WHO UMC VigiFlow).
+
+- **Substance Harmonization**: Cross-referenced using universal **WHO-ATC** classification codes (e.g. `A10BJ06` for Semaglutide) and Brazilian DCB catalog.
+- **Reaction Terminology**: Standardized via **MedDRA Preferred Terms (PT)** with bilingual Portuguese/English indexing.
+- **Comparative Concordance**: Evaluates whether active signals in the global FDA dataset replicate in Brazilian epidemiological surveillance.
+
+## Feedback & Community Research Queue
+
+Researchers and pharmacovigilance professionals can flag questionable data points, calculation discrepancies, or suspected reporting biases directly on any metric card, table row, or 2 × 2 matrix. Flagged items accumulate in an in-memory review queue before being submitted via `POST /api/v1/feedback`.
+
+```http
+POST /api/v1/feedback
+Content-Type: application/json
+
+{
+  "email": "researcher@institution.edu",
+  "comments": "Observed notoriety bias post-media coverage.",
+  "flagged_statistics": [
+    {
+      "drug": "Semaglutide",
+      "reaction": "PANCREATITIS",
+      "jurisdiction": "FDA",
+      "metric": "PRR",
+      "displayed_value": "7.12 [6.75 - 7.51]",
+      "reason": "Suspected stimulated reporting"
+    }
+  ]
+}
+```
+
+## AI Transparency & Attribution
+
+The architecture, statistical pipelines, and cross-dataset harmonization of **PV Signal Radar** were developed with advanced Artificial Intelligence assistance from:
+- **Google AI**: Google Antigravity platform with the **Gemini 3.7 Flash High** model.
+- **OpenAI**: **GPT-Sol 5.6 Ultra** model.
 
 ## License
 

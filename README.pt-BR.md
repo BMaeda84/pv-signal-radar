@@ -102,7 +102,23 @@ docker build --tag pv-signal-radar:local .
 
 A CI executa testes com race detector, análise estática, build do binário e build Docker em todo pull request e push para `main`.
 
-No Windows, `go test -race` exige CGO e um compilador C disponível. Se o host local não oferecer esse toolchain, rode `go test ./...` localmente e use a execução Linux da CI como verificação do race detector.
+## Harmonização em Base Dupla (US FDA FAERS × Brasil ANVISA VigiMed)
+
+A versão 2.0 introduz triagem comparativa internacional confrontando os relatos globais do **FDA FAERS** com o **ANVISA VigiMed** (sistema oficial brasileiro baseado na plataforma WHO UMC VigiFlow).
+
+- **Harmonização de Substâncias**: Cruzamento por códigos universais **WHO-ATC** (ex: `A10BJ06` para Semaglutida) e catálogo da DCB.
+- **Terminologia de Reações**: Padronização por **MedDRA Preferred Terms (PT)** com indexação bilíngue Português/Inglês.
+- **Concordância Comparativa**: Avalia se sinais ativos identificados na base norte-americana replicam na vigilância epidemiológica brasileira.
+
+## Fila de Feedback e Validação por Pesquisadores
+
+Pesquisadores e profissionais de farmacovigilância podem capturar e reportar qualquer métrica, linha de tabela ou matriz 2 × 2 diretamente pelo botão contextual de bandeira. Os itens acumulam em uma fila de revisão antes do envio via `POST /api/v1/feedback`.
+
+## Transparência e Uso de IA
+
+A arquitetura, pipelines estatísticos e harmonização de bases do **PV Signal Radar** foram desenvolvidos com assistência direta de Inteligência Artificial de:
+- **Google AI**: Plataforma Google Antigravity com o modelo **Gemini 3.7 Flash High**.
+- **OpenAI**: Modelo **GPT-Sol 5.6 Ultra**.
 
 ## Licença
 

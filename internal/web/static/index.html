@@ -3,177 +3,382 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PV Signal Radar — triagem exploratória de sinais em farmacovigilância</title>
-  <meta name="description" content="Triagem estatística exploratória de sinais de farmacovigilância com dados FAERS do openFDA, PRR, ROR e qui-quadrado de Yates.">
+  <title>PV Signal Radar - Farmacovigilância Aberta FDA &times; ANVISA</title>
+  <meta name="description" content="Motor estatístico open-source de detecção de sinais de segurança farmacológica com dados abertos do FDA FAERS e ANVISA VigiMed.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+
+  <!-- Header -->
   <header>
     <div class="container header-content">
       <div class="logo-area">
-        <div class="logo-icon" aria-hidden="true">PV</div>
+        <div class="logo-icon">PV</div>
         <div class="logo-title">
-          <h1 data-i18n="brandTitle">Radar de Sinais</h1>
-          <span data-i18n="brandSubtitle">Mineração de dados em farmacovigilância</span>
+          <h1>Signal Radar <span class="version-tag">v2.0 Dual-Base</span></h1>
+          <span>Farmacovigilância Analítica &bull; FDA (EUA) &times; ANVISA (Brasil)</span>
         </div>
       </div>
-      <div class="header-links">
-        <a href="#methodology" class="btn-link">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 0 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-          <span data-i18n="methodologyLink">Metodologia</span>
-        </a>
-        <div class="language-control">
-          <label class="sr-only" for="languageSelect" data-i18n="languageLabel">Idioma da interface</label>
-          <select id="languageSelect" class="language-select" data-i18n-aria-label="languageLabel" aria-label="Idioma da interface">
-            <option value="pt-BR">Português (Brasil)</option>
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-        <a href="https://github.com/BMaeda84/pv-signal-radar" target="_blank" rel="noopener noreferrer" class="btn-link">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-          <span data-i18n="githubLink">GitHub (MIT)</span>
-        </a>
-      </div>
+
+      <!-- Main Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button type="button" class="tab-btn active" data-tab="radarTabView">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg>
+          Radar Comparativo
+        </button>
+        <button type="button" class="tab-btn" data-tab="methodologyTabView">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          Metodologia &amp; Epistemologia
+        </button>
+        <button type="button" class="tab-btn" data-tab="feedbackTabView">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          Feedback &amp; Comunidade
+          <span id="headerFeedbackBadge" class="feedback-badge">0</span>
+        </button>
+      </nav>
     </div>
   </header>
 
-  <main class="container">
-    <section class="hero" aria-labelledby="heroTitle">
-      <h2 id="heroTitle" data-i18n="heroTitle">Triagem aberta de sinais de desproporcionalidade</h2>
-      <p data-i18n="heroText">Explore relatos espontâneos no FAERS com PRR, ROR e qui-quadrado de Yates. Os resultados geram hipóteses; não demonstram causalidade.</p>
+  <main class="container" style="flex: 1;">
 
-      <div class="search-box-wrapper">
-        <form id="searchForm" class="search-form">
-          <label class="sr-only" for="drugInput" data-i18n="drugInputLabel">Substância ativa</label>
-          <input type="text" id="drugInput" class="search-input" data-i18n-placeholder="drugPlaceholder" placeholder="Pesquise uma substância ativa (ex.: Semaglutida, Pembrolizumabe, Metformina)…" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="120" required>
-          <button type="submit" class="btn-primary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <span data-i18n="analyze">Analisar</span>
+    <!-- ==================== TAB 1: RADAR COMPARATIVO ==================== -->
+    <section id="radarTabView" class="tab-content active" style="display: block;">
+      
+      <!-- Search Area -->
+      <section class="hero">
+        <h2>Mineração de Sinais de Farmacovigilância</h2>
+        <p>Análise de desproporcionalidade estatística (PRR, ROR, &chi;&sup2; de Yates e IC 95%) harmonizada entre o banco global da FDA (FAERS) e a base nacional da ANVISA (VigiMed).</p>
+        
+        <div class="search-box-wrapper">
+          <form id="searchForm" class="search-form">
+            <input type="text" id="drugInput" class="search-input" placeholder="Buscar princípio ativo ou marca (ex: Semaglutida, Dipirona, Metformina, Pembrolizumabe)..." autocomplete="off" required>
+            <button type="submit" class="btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              Analisar
+            </button>
+          </form>
+          <div class="search-presets">
+            <span>Substâncias frequentes:</span>
+            <button type="button" class="tag-preset" data-drug="Semaglutida">Semaglutida (Ozempic)</button>
+            <button type="button" class="tag-preset" data-drug="Dipirona">Dipirona (Metamizol)</button>
+            <button type="button" class="tag-preset" data-drug="Metformina">Metformina (Glifage)</button>
+            <button type="button" class="tag-preset" data-drug="Rosuvastatina">Rosuvastatina (Crestor)</button>
+            <button type="button" class="tag-preset" data-drug="Pembrolizumabe">Pembrolizumabe (Keytruda)</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- State Box (Loading / Feedback) -->
+      <div id="stateBox" class="state-box">
+        <div id="loadingSpinner" class="spinner"></div>
+        <div class="state-text">Carregando dados das bases de farmacovigilância...</div>
+      </div>
+
+      <!-- Results Container -->
+      <div id="resultsContainer" style="display: none;">
+        
+        <!-- Comparative Summary Banner -->
+        <div id="comparativeBanner" class="comparative-banner">
+          <div class="comparative-header">
+            <div class="comparative-title">
+              <span>Cruzamento Jurisdicional: <strong id="compDrugName" style="color: var(--accent-cyan);">-</strong></span>
+              <span id="compATCCode" class="atc-pill">ATC: -</span>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <span style="font-size: 0.8rem; color: var(--text-secondary);">Sinais Ativos: <strong>FDA: <span id="compFDASignals" style="color: var(--signal-active);">0</span></strong> &bull; <strong>ANVISA: <span id="compAnvisaSignals" style="color: var(--signal-potential);">0</span></strong></span>
+              <button class="btn-flag-stat" id="flagComparativeSummary" title="Anexar comparativo ao feedback">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              </button>
+            </div>
+          </div>
+          <ul id="compInsightsList" class="comparative-insights-list">
+            <!-- Dynamically populated -->
+          </ul>
+        </div>
+
+        <!-- Sub-tabs for Jurisdiction Selection -->
+        <div class="jurisdiction-tabs">
+          <button type="button" class="j-tab-btn active" data-jurisdiction="fda">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            US FDA FAERS (Global)
           </button>
-        </form>
-        <div class="search-presets">
-          <span data-i18n="popularBenchmarks">Exemplos:</span>
-          <button type="button" class="tag-preset" data-drug="Semaglutide">Semaglutide</button>
-          <button type="button" class="tag-preset" data-drug="Pembrolizumab">Pembrolizumab</button>
-          <button type="button" class="tag-preset" data-drug="Metformin">Metformin</button>
-          <button type="button" class="tag-preset" data-drug="Rosuvastatin">Rosuvastatin</button>
-          <button type="button" class="tag-preset" data-drug="Adalimumab">Adalimumab</button>
+          <button type="button" class="j-tab-btn" data-jurisdiction="anvisa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+            Brasil ANVISA VigiMed
+          </button>
+        </div>
+
+        <!-- Metrics Overview Grid -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Base de Dados Ativa</div>
+            </div>
+            <div id="statJurisdictionTitle" class="stat-value" style="font-size: 1.25rem; color: var(--accent-cyan);">-</div>
+            <div class="stat-subtext">Jurisdição regulatória</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Total de Relatos do Fármaco (a + b)</div>
+              <button class="btn-flag-stat" id="flagTotalReports" title="Questionar volume de relatos">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              </button>
+            </div>
+            <div id="statTotalReports" class="stat-value">-</div>
+            <div class="stat-subtext">Notificações espontâneas registradas</div>
+          </div>
+
+          <div id="activeSignalsCard" class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Sinais Ativos de Alerta</div>
+              <button class="btn-flag-stat" id="flagActiveSignals" title="Questionar quantidade de sinais ativos">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+              </button>
+            </div>
+            <div id="statActiveSignals" class="stat-value" style="color: var(--signal-active);">-</div>
+            <div class="stat-subtext">Critérios EMA: a &ge; 3, PRR &ge; 2.0, &chi;&sup2; &ge; 4.0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-top">
+              <div class="stat-label">Universo da Base (N)</div>
+            </div>
+            <div id="statUniverseN" class="stat-value">-</div>
+            <div class="stat-subtext">Total de registros no repositório</div>
+          </div>
+        </div>
+
+        <!-- Main Dashboard Layout: Volcano Plot & Table -->
+        <div class="dashboard-layout">
+          
+          <!-- Volcano Plot -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Volcano Plot de Desproporcionalidade</span>
+            </div>
+            <div class="card-body">
+              <div class="plot-container">
+                <canvas id="volcanoCanvas"></canvas>
+              </div>
+              <div class="plot-legend">
+                <div class="legend-item">
+                  <div class="legend-dot" style="background: var(--signal-active);"></div>
+                  <span>Sinal Ativo</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background: var(--signal-potential);"></div>
+                  <span>Potencial</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-dot" style="background: var(--signal-none);"></div>
+                  <span>Baseline</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Pares Fármaco-Reação &amp; Estatísticas</span>
+            </div>
+            <div class="table-responsive">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Reação Adversa (MedDRA PT)</th>
+                    <th>Relatos (a)</th>
+                    <th>PRR [95% CI]</th>
+                    <th>ROR [95% CI]</th>
+                    <th>&chi;&sup2; (Yates)</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Reportar</th>
+                  </tr>
+                </thead>
+                <tbody id="signalsTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: METODOLOGIA & EPISTEMOLOGIA ==================== -->
+    <section id="methodologyTabView" class="tab-content" style="display: none; padding: 2rem 0;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Tratado Metodológico e Epistêmico em Farmacovigilância</span>
+        </div>
+        <div class="card-body" style="line-height: 1.8; color: var(--text-secondary); font-size: 0.925rem;">
+          
+          <h3 class="method-section-title">1. Anatomia das Bases de Notificação Espontânea</h3>
+          <p>
+            A farmacovigilância pós-comercialização baseia-se em sistemas de notificação espontânea (SRS - <em>Spontaneous Reporting Systems</em>). Ao contrário de ensaios clínicos controlados, estes dados possuem natureza não-intervencionista, heterogênea e descentralizada.
+          </p>
+          <ul style="padding-left: 1.5rem; margin: 0.75rem 0;">
+            <li><strong>FDA FAERS (EUA / Global):</strong> Contém mais de 25 milhões de relatos desde 1968. Coleta notificações diretas de pacientes, profissionais de saúde e envio obrigatório pelas indústrias farmacêuticas detentoras de registro (MAHs via FDA MedWatch).</li>
+            <li><strong>ANVISA VigiMed (Brasil):</strong> Implementado em dezembro de 2018 em substituição ao módulo de medicamentos do Notivisa, baseado na arquitetura <em>VigiFlow</em> do Uppsala Monitoring Centre (UMC/OMS). Segue o padrão de interoperabilidade internacional <strong>ICH E2B(R3)</strong>.</li>
+            <li><strong>WHO VigiBase (Global - UMC):</strong> Maior repositório mundial (+35M relatos de mais de 130 países membros), agregando os envios nacionais do Brasil, EUA, União Europeia e demais nações.</li>
+            <li><strong>EMA EudraVigilance (União Europeia):</strong> Base mandatória da Agência Europeia de Medicamentos para os 27 estados-membros do EEE.</li>
+            <li><strong>Health Canada (Canada Vigilance):</strong> Base aberta canadense distribuída em arquivos ASCII estruturados.</li>
+          </ul>
+
+          <h3 class="method-section-title">2. Harmonização Ontológica e Cruzamento de Dados</h3>
+          <p>
+            O cruzamento entre FDA e ANVISA exige a compatibilização de ontologias farmacológicas e clínicas:
+          </p>
+          <ul style="padding-left: 1.5rem; margin: 0.75rem 0;">
+            <li><strong>Ontologia de Fármacos:</strong> No Brasil, a ANVISA cataloga por <em>Denominação Comum Brasileira (DCB)</em> e nomes comerciais. O FDA utiliza <em>UNII</em> e <em>RxNorm (RxCUI)</em>. O elo canônico de cruzamento empregado nesta plataforma é a classificação <strong>WHO-ATC (Anatomical Therapeutic Chemical)</strong>, que unifica a substância ativa em nível internacional (ex: <code>A10BJ06</code> para Semaglutida).</li>
+            <li><strong>Ontologia de Reações Adversas:</strong> Ambas as agências utilizam a taxonomia <strong>MedDRA</strong> (<em>Medical Dictionary for Regulatory Activities</em>). Os dados são indexados no nível de <strong>Preferred Term (PT)</strong> e <strong>System Organ Class (SOC)</strong>, com suporte bilíngue (Português/Inglês) através dos códigos numéricos MedDRA.</li>
+          </ul>
+
+          <h3 class="method-section-title">3. Formulação Matemática da Desproporcionalidade</h3>
+          <p>
+            A desproporcionalidade compara a frequência observada de uma associação Fármaco-Reação contra o que seria esperado pelo ruído de fundo da base:
+          </p>
+
+          <p><strong>A. Proportional Reporting Ratio (PRR - Evans et al.):</strong></p>
+          <div class="formula-box">
+            PRR = [a / (a + b)] / [c / (c + d)]<br>
+            SE(ln PRR) = &radic;[1/a - 1/(a+b) + 1/c - 1/(c+d)]<br>
+            CI_95%(PRR) = [exp(ln PRR - 1.96 &times; SE), exp(ln PRR + 1.96 &times; SE)]
+          </div>
+
+          <p><strong>B. Reporting Odds Ratio (ROR - Van Puijenbroek et al.):</strong></p>
+          <div class="formula-box">
+            ROR = (a &times; d) / (b &times; c)<br>
+            SE(ln ROR) = &radic;[1/a + 1/b + 1/c + 1/d]<br>
+            CI_95%(ROR) = [exp(ln ROR - 1.96 &times; SE), exp(ln ROR + 1.96 &times; SE)]
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">
+            <em>Nota de Estabilidade:</em> Aplica-se a correção de continuidade de Haldane-Anscombe (+0.5 em cada célula) quando qualquer contagem é nula para prevenir indeterminações assintóticas.
+          </p>
+
+          <p><strong>C. Chi-Quadrado com Correção de Yates (&chi;&sup2;):</strong></p>
+          <div class="formula-box">
+            &chi;&sup2;_Yates = N &times; (max(0, |ad - bc| - N/2))&sup2; / [(a+b)(c+d)(a+c)(b+d)]
+          </div>
+
+          <h3 class="method-section-title">4. Vieses Críticos e Limitações Regulatórias</h3>
+          <div style="background: rgba(239, 68, 68, 0.08); border-left: 4px solid var(--signal-active); padding: 1rem; border-radius: 4px; margin: 1rem 0;">
+            <ul style="padding-left: 1.2rem;">
+              <li><strong>Ausência de Denominador Prescricional:</strong> Os SRS quantificam <em>relatos</em>, não <em>incidência</em>. O número real de pacientes expostos ao tratamento no mundo não é registrado na base espontânea.</li>
+              <li><strong>Efeito Weber &amp; Notoriedade:</strong> Picos de notificação ocorrem nos primeiros 2 anos após o lançamento ou após matérias na imprensa e litígios judiciais, distorcendo o sinal estatístico sem que a toxicidade biológica real tenha se alterado.</li>
+              <li><strong>Não-Causalidade:</strong> Um sinal estatístico (&chi;&sup2; &ge; 4.0, PRR &ge; 2.0) é um <em>gerador de hipóteses</em> para investigação clínica detalhada, farmacocinética e estudos de coorte; jamais prova de causalidade farmacológica isolada.</li>
+            </ul>
+          </div>
+
         </div>
       </div>
     </section>
 
-    <div id="stateBox" class="state-box" role="status" aria-live="polite">
-      <div id="loadingSpinner" class="spinner" aria-hidden="true" style="display: none;"></div>
-      <div class="state-text" data-i18n="stateReady">Pronto para consultar a base FAERS do openFDA.</div>
-    </div>
-
-    <div id="resultsContainer" style="display: none;" aria-live="polite">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label" data-i18n="statAnalyzedSubstance">Substância analisada</div>
-          <div id="statDrugName" class="stat-value accent-value">—</div>
-          <div class="stat-subtext" data-i18n="statQueriedTarget">Medicamento-alvo consultado</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label" data-i18n="statDrugReports">Relatos do medicamento (a + b)</div>
-          <div id="statTotalReports" class="stat-value">—</div>
-          <div class="stat-subtext" data-i18n="statReportsMentionTarget">Relatos que mencionam o medicamento-alvo</div>
-        </div>
-        <div id="activeSignalsCard" class="stat-card">
-          <div class="stat-label" data-i18n="statActiveSignals">Sinais de triagem ativos</div>
-          <div id="statActiveSignals" class="stat-value signal-active-value">—</div>
-          <div class="stat-subtext" data-i18n="statActiveCriteria">PRR ≥ 2,0; χ² ≥ 4,0; a ≥ 3</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label" data-i18n="statUniverseReports">Universo de relatos (N)</div>
-          <div id="statUniverseN" class="stat-value">—</div>
-          <div class="stat-subtext" data-i18n="statFaersRecords">Registros totais da base FAERS</div>
-        </div>
-      </div>
-
-      <div class="dashboard-layout">
-        <section class="card" aria-labelledby="volcanoPlotTitle">
+    <!-- ==================== TAB 3: FEEDBACK & COMUNIDADE ==================== -->
+    <section id="feedbackTabView" class="tab-content" style="display: none; padding: 2rem 0;">
+      
+      <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+        
+        <!-- Feedback Form & Flagged Queue -->
+        <div class="card">
           <div class="card-header">
-            <span id="volcanoPlotTitle" class="card-title" data-i18n="volcanoTitle">Gráfico vulcão de desproporcionalidade</span>
+            <span class="card-title">Canal de Feedback &amp; Validação Científica</span>
           </div>
           <div class="card-body">
-            <div class="plot-container">
-              <canvas id="volcanoCanvas" role="img" data-i18n-aria-label="plotAriaLabel" aria-label="Gráfico vulcão de PRR e qui-quadrado de Yates" aria-describedby="volcanoPlotDescription"></canvas>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+              Pesquisadores, farmacêuticos e analistas regulatórios: usem este formulário para enviar dúvidas, relatar inconsistências de dados ou sugerir melhorias metodológicas para o mantenedor do projeto.
+            </p>
+
+            <!-- Flagged Statistics Queue Container -->
+            <div style="margin-bottom: 1.5rem;">
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+                Estatísticas e Métricas Capturadas na Sessão
+              </h4>
+              <div id="noFlaggedItemsPrompt" style="background: #0d131f; padding: 1rem; border-radius: 6px; border: 1px dashed var(--border-color); font-size: 0.825rem; color: var(--text-muted); text-align: center;">
+                Nenhuma estatística selecionada ainda. Você pode navegar pelo <strong>Radar Comparativo</strong> e clicar no ícone de bandeira (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>) em qualquer linha da tabela ou card para anexar a este feedback.
+              </div>
+              <div id="flaggedQueueList">
+                <!-- Dynamically populated -->
+              </div>
             </div>
-            <p id="volcanoPlotDescription" class="sr-only" data-i18n="plotDescription">O gráfico mostra cada reação analisada por log2 do PRR e raiz quadrada do qui-quadrado de Yates.</p>
-            <div class="plot-legend" data-i18n-aria-label="plotLegendLabel" aria-label="Legenda">
-              <div class="legend-item"><div class="legend-dot signal-active-dot"></div><span data-i18n="signalActive">Sinal ativo de triagem</span></div>
-              <div class="legend-item"><div class="legend-dot signal-potential-dot"></div><span data-i18n="signalPotential">Sinal potencial</span></div>
-              <div class="legend-item"><div class="legend-dot signal-none-dot"></div><span data-i18n="signalBaseline">Sem sinal</span></div>
-            </div>
-          </div>
-        </section>
 
-        <section class="card" aria-labelledby="eventsTitle">
-          <div class="card-header">
-            <span id="eventsTitle" class="card-title" data-i18n="eventsTitle">Principais eventos adversos e métricas de desproporcionalidade</span>
-            <span id="statReactionsAnalyzed" class="reactions-count"></span>
-          </div>
-          <div class="table-responsive">
-            <table>
-              <caption class="sr-only" data-i18n="eventsTitle">Principais eventos adversos e métricas de desproporcionalidade</caption>
-              <thead>
-                <tr>
-                  <th data-i18n="adverseReaction">Reação adversa (MedDRA PT)</th>
-                  <th data-i18n="reports">Relatos (a)</th>
-                  <th data-i18n="prrCI">PRR [IC 95%]</th>
-                  <th data-i18n="rorCIHeader">ROR [IC 95%]</th>
-                  <th data-i18n="chiYates">χ² (Yates)</th>
-                  <th data-i18n="signalStatus">Status de triagem</th>
-                </tr>
-              </thead>
-              <tbody id="signalsTableBody"></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+            <!-- Form -->
+            <form id="feedbackForm">
+              <div class="form-group">
+                <label for="feedbackEmail" class="form-label">Seu E-mail Institucional ou de Contato *</label>
+                <input type="email" id="feedbackEmail" class="form-control" placeholder="ex: pesquisador@universidade.edu.br" required>
+              </div>
 
-      <aside class="disclaimer-banner" aria-labelledby="disclaimerTitle">
-        <strong id="disclaimerTitle" data-i18n="disclaimerTitle">Limitação metodológica:</strong>
-        <span data-i18n="disclaimerText">os cálculos usam relatos espontâneos do FAERS. Coocorrência no relato não vincula individualmente um medicamento à reação, não comprova causalidade e não estima incidência clínica.</span>
-      </aside>
-    </div>
+              <div class="form-group">
+                <label for="feedbackComments" class="form-label">Observações, Diagnóstico ou Sugestão Metodológica *</label>
+                <textarea id="feedbackComments" class="form-control" placeholder="Descreva os apontamentos sobre as estatísticas selecionadas ou sugestões para a plataforma..." required></textarea>
+              </div>
 
-    <section id="methodology" class="card methodology-card" aria-labelledby="methodologyTitle">
-      <div class="card-header">
-        <span id="methodologyTitle" class="card-title" data-i18n="methodologyTitle">Metodologia estatística e formulação</span>
-      </div>
-      <div class="card-body methodology-body">
-        <p data-i18n="methodologyIntro">A triagem avalia se uma reação é relatada proporcionalmente mais para o medicamento-alvo do que no background dos demais relatos. Isso prioriza hipóteses para revisão; não estabelece uma conclusão de segurança.</p>
-        <div class="methodology-grid">
-          <div>
-            <h3 data-i18n="prrTitle">1. Proportional Reporting Ratio (PRR)</h3>
-            <p data-i18n="prrText">Compara a proporção de relatos da reação para o medicamento de interesse com a proporção no background.</p>
-            <div class="formula">PRR = [a / (a + b)] / [c / (c + d)]</div>
-            <p class="methodology-note" data-i18n="prrCriteria">Limiar configurado de triagem: PRR ≥ 2,0, a ≥ 3 e χ² ≥ 4,0.</p>
-          </div>
-          <div>
-            <h3 data-i18n="rorTitle">2. Reporting Odds Ratio (ROR)</h3>
-            <p data-i18n="rorText">Compara as odds de relatar o evento com o medicamento-alvo e com os demais medicamentos.</p>
-            <div class="formula">ROR = (a × d) / (b × c)</div>
-            <p class="methodology-note" data-i18n="rorCI">Os intervalos de confiança usam variância assintótica com correção de Haldane-Anscombe quando há célula zero.</p>
-          </div>
-          <div>
-            <h3 data-i18n="chiTitle">3. Qui-quadrado corrigido de Yates</h3>
-            <p data-i18n="chiText">Estatística de continuidade para uma tabela 2 × 2 com um grau de liberdade.</p>
-            <div class="formula">χ² = N(max(0, |ad − bc| − N/2))² / [(a+b)(c+d)(a+c)(b+d)]</div>
+              <div id="feedbackStatusMsg" style="margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+              <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                Enviar Feedback ao Mantenedor
+              </button>
+            </form>
+
           </div>
         </div>
+
+        <!-- Open Source, GitHub & AI Attribution -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Código Aberto, Governança &amp; Transparência de IA</span>
+          </div>
+          <div class="card-body" style="font-size: 0.875rem; color: var(--text-secondary); line-height: 1.7;">
+            
+            <h4 style="color: var(--text-primary); font-size: 0.95rem; margin-bottom: 0.4rem;">Repositório Público e Contribuições</h4>
+            <p>
+              O <strong>PV Signal Radar</strong> é mantido por <strong>Bruno Maeda</strong> sob licença open-source <strong>MIT</strong>. Contribuições são bem-vindas para inclusão de novos parsers de dados abertos (EudraVigilance, Canada Vigilance), aprimoramento de algoritmos bayesianos e correções na tabela de sinônimos farmacêuticos.
+            </p>
+            <div style="margin: 0.75rem 0;">
+              <a href="https://github.com/BMaeda84/pv-signal-radar" target="_blank" rel="noopener noreferrer" class="btn-link" style="display: inline-flex; width: auto;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                Acessar GitHub: BMaeda84/pv-signal-radar
+              </a>
+            </div>
+
+            <div class="attribution-banner">
+              <div class="attribution-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 12 2.1 12.5"></path></svg>
+                Declaração de Transparência e Uso de IA
+              </div>
+              <p style="font-size: 0.825rem; color: var(--text-secondary); margin-top: 0.35rem;">
+                As ferramentas, pipelines de harmonização ontológica e modelagem estatística implementadas no <strong>PV Signal Radar</strong> foram desenvolvidas com assistência direta de Inteligência Artificial utilizando <strong>Google AI (plataforma Google Antigravity com o modelo Gemini 3.7 Flash High)</strong> e <strong>OpenAI GPT-Sol 5.6 Ultra</strong>.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
       </div>
+
     </section>
+
   </main>
 
-  <div id="plotTooltip" class="plot-tooltip" style="display: none;" aria-hidden="true"></div>
+  <!-- Floating Feedback Queue Bar -->
+  <div id="floatingFeedbackBar" class="floating-feedback-bar" title="Clique para revisar suas estatísticas selecionadas e enviar o feedback">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-cyan);"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+    <span style="font-size: 0.85rem; font-weight: 600;">Revisar Feedback</span>
+    <span id="queueCountPill" class="queue-pill">0</span>
+  </div>
 
+  <!-- Plot Tooltip -->
+  <div id="plotTooltip" style="display: none; position: fixed; z-index: 100; pointer-events: none; background: #1e293b; border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"></div>
+
+  <!-- Footer -->
   <footer>
     <div class="container">
-      <p><span data-i18n="footerText">PV Signal Radar • código aberto (MIT) • Go e dados FAERS do openFDA •</span> <a href="https://github.com/BMaeda84/pv-signal-radar">GitHub</a></p>
+      <p>PV Signal Radar &bull; Open-Source (MIT License) &bull; Criado por <a href="https://github.com/BMaeda84" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Bruno Maeda</a> &bull; Assistido por Google AI &amp; OpenAI</p>
     </div>
   </footer>
 
