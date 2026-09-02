@@ -17,7 +17,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /pv-signa
 # Stage 2: Minimal runtime container (< 20MB)
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata && \
+    mkdir -p /app/data && \
+    chown -R 1000:1000 /app
 
 WORKDIR /app
 

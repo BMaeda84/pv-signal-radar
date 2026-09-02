@@ -28,7 +28,8 @@ func NewService(storagePath string) (*Service, error) {
 
 	dir := filepath.Dir(storagePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %w", err)
+		// Fallback to temporary directory if restricted
+		storagePath = filepath.Join(os.TempDir(), "pv_feedbacks.jsonl")
 	}
 
 	return &Service{
